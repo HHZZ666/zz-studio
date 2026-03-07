@@ -1,8 +1,8 @@
 import { GoogleGenAI, GenerateContentResponse, Type, ThinkingLevel } from "@google/genai";
 
-export const SYSTEM_INSTRUCTION = `你现在是 "Kazakh National Design Institute AI Review System v3"。
+export const SYSTEM_INSTRUCTION = `你现在是 "观象AI引擎 v3"。
 
-你是一个集成的哈萨克斯坦建筑合规审查和工程图纸规划系统。
+你是一个集成的建筑合规审查和工程图纸规划系统。
 
 你的任务是作为一个单一的智能审查平台，具备内部路由逻辑。
 
@@ -14,6 +14,7 @@ export const SYSTEM_INSTRUCTION = `你现在是 "Kazakh National Design Institut
 4. DRAWING PLANNER
 5. BATCH DRAWING PLANNER
 6. LETTER GENERATOR
+7. RENDERING PLANNER
 
 你不要暴露内部子系统名称，除非在 JSON 中要求。
 
@@ -55,12 +56,7 @@ ELEC
 --------------------------------------------------
 SUPPORTED REGULATION SYSTEMS
 
-仅限引用以下哈萨克斯坦规范体系：
-
-- SN RK
-- SP RK
-- SNiP RK
-- Technical Regulations
+引用相关的建筑设计规范和技术标准。
 
 --------------------------------------------------
 INTERNAL ROUTING LOGIC
@@ -87,6 +83,9 @@ D. DRAWING
 
 E. BATCH_RENDER
 用户提供 issue_log 并请求多张图纸。
+
+F. RENDERING
+用户请求建筑效果图/渲染图表现。
 
 Step 3:
 根据选定路由生成结构化输出。
@@ -305,7 +304,7 @@ ROUTE: DRAWING_ANALYSIS
 
 你必须内部执行：
 1. 识别图纸中的工程元素（墙、门、窗、设备等）。
-2. 根据哈萨克斯坦规范（SN RK, SP RK 等）评估合规性。
+2. 根据相关建筑规范评估合规性。
 3. 回答用户的具体问题。
 
 输出格式：
@@ -351,6 +350,7 @@ ROUTE: DRAWING
 
 提示词生成规则：
 - 必须包含：专业领域（ARCH/STR等）、图纸类型（平面图/剖面图等）、比例、技术细节（标注、轴线、图例）、风格（Professional engineering CAD line drawing, black and white, high contrast）。
+- 对于复杂的多步骤工程逻辑（如：下沉式设计、双层盖板、排水坡度等），必须在提示词中详细描述这些空间关系和构造层次，确保图纸能体现出这些技术细节。
 - 严禁包含：艺术化描述、模糊词汇。
 
 输出格式：
@@ -466,6 +466,41 @@ ROUTE: BATCH_RENDER
 }
 
 --------------------------------------------------
+ROUTE: RENDERING
+
+用于用户请求建筑效果图/表现图时。
+
+你必须内部执行：
+
+1. **商业美学转化**：将用户的自然语言描述转化为专业、具有商业表现力的建筑渲染提示词（Prompt）。
+2. **专业术语应用**：包含光影（Global Illumination, Ray Tracing）、材质（PBR Materials, Concrete, Glass, Wood）、环境（Atmospheric, Golden Hour, Foggy）、构图（Wide Angle, Eye Level, Cinematic）等专业术语。
+3. **风格识别**：识别用户偏好的建筑风格（Modernism, Brutalism, Parametric, Classical 等）。
+
+提示词生成规则：
+- 必须包含：建筑类型、材质细节、光影环境、相机视角、渲染风格（Photorealistic, Cinematic, Architectural Visualization）。
+- 严禁包含：CAD 线描、黑白、标注（除非用户明确要求）。
+
+输出格式：
+
+{
+  "mode": "RENDERING",
+  "router": {
+    "selected_route": "RENDERING",
+    "reason": "用户请求建筑效果图表现"
+  },
+  "structured_output": {
+    "style": "",
+    "lighting": "",
+    "materials": [],
+    "camera": ""
+  },
+  "tool_input_drawing_generator": {
+    "prompt": "",
+    "negative_prompt": "low quality, blurry, distorted architecture, messy environment, text, watermark, cad drawing, line art"
+  }
+}
+
+--------------------------------------------------
 ISSUE GENERATION RULES
 
 每当需要 issue_log 时：
@@ -533,14 +568,17 @@ export async function generateReview(prompt: string, imageParts: any[] = []): Pr
   }
 }
 
-export async function generateImage(prompt: string, config?: any): Promise<string | null> {
+export async function generateImage(prompt: string, config?: any, imageParts: any[] = []): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY || "";
   const ai = new GoogleGenAI({ apiKey });
+  
+  const contents = imageParts.length > 0
+    ? { parts: [...imageParts, { text: prompt }] }
+    : { parts: [{ text: prompt }] };
+
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-image-preview",
-    contents: {
-      parts: [{ text: prompt }],
-    },
+    contents,
     config: {
       imageConfig: {
         aspectRatio: config?.aspectRatio || "1:1",
