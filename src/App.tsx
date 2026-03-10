@@ -20,18 +20,181 @@ import {
   X,
   Maximize2,
   Sparkles,
-  Aperture
+  Pencil,
+  HelpCircle,
+  Aperture,
+  Archive,
+  Palette,
+  Library,
+  ChevronDown,
+  ChevronUp,
+  Activity,
+  Database,
+  Cpu,
+  Globe,
+  Zap,
+  Brain,
+  Code,
+  ExternalLink,
+  Lock,
+  User,
+  Mail,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { generateReview, generateImage } from './services/gemini';
+import { generateReview, generateImage, searchRegulationsWithAI, optimizePrompt } from './services/gemini';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+const ModuleGuide = ({ title, steps, onClose }: { title: string, steps: string[], onClose: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-[#D9D5CC]/30 p-5 z-50"
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2 text-[#6B6A4C]">
+        <HelpCircle size={16} />
+        <h4 className="text-xs font-bold uppercase tracking-widest">使用说明 · {title}</h4>
+      </div>
+      <button onClick={onClose} className="text-[#AAA396] hover:text-[#1A1A1A]">
+        <X size={14} />
+      </button>
+    </div>
+    <div className="space-y-3">
+      {steps.map((step, i) => (
+        <div key={i} className="flex gap-3">
+          <span className="w-5 h-5 rounded-full bg-[#6B6A4C]/10 text-[#6B6A4C] text-[10px] font-bold flex items-center justify-center shrink-0">
+            {i + 1}
+          </span>
+          <p className="text-[11px] text-[#4A463D] leading-relaxed font-medium">{step}</p>
+        </div>
+      ))}
+    </div>
+    <div className="mt-4 pt-4 border-t border-[#D9D5CC]/30">
+      <p className="text-[9px] text-[#AAA396] italic">如有疑问，请联系观象技术支持团队。</p>
+    </div>
+  </motion.div>
+);
+
+const Login = ({ onLogin }: { onLogin: (user: any) => void }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    // Simulate API call
+    setTimeout(() => {
+      if (email === 'admin@guanxiang.ai' && password === 'admin123') {
+        onLogin({ name: '观象管理员', email, role: 'admin' });
+      } else if (email === 'user@example.com' && password === 'user123') {
+        onLogin({ name: '建筑设计师', email, role: 'user' });
+      } else {
+        setError('邮箱或密码错误，请重试。');
+      }
+      setLoading(false);
+    }, 1000);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F5F5F2] flex items-center justify-center p-6">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-[440px] bg-white rounded-[40px] shadow-2xl border border-[#D9D5CC]/30 overflow-hidden"
+      >
+        <div className="p-10 space-y-8">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-20 h-20 bg-[#1A1A1A] rounded-[24px] flex items-center justify-center text-white shadow-xl">
+              <Logo className="w-12 h-12" />
+            </div>
+            <div className="space-y-1">
+              <h1 className="font-serif text-3xl font-bold text-[#1A1A1A]">观象建筑 AI</h1>
+              <p className="text-[10px] text-[#8C877C] uppercase tracking-[0.3em] font-bold">Architectural Intelligence Platform</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest ml-1">电子邮箱</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#AAA396]" size={18} />
+                  <input 
+                    type="email" 
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@guanxiang.ai"
+                    className="w-full h-[54px] bg-[#F5F5F2] rounded-[20px] pl-12 pr-6 text-sm font-medium outline-none border border-transparent focus:border-[#6B6A4C]/30 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest ml-1">登录密码</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#AAA396]" size={18} />
+                  <input 
+                    type="password" 
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full h-[54px] bg-[#F5F5F2] rounded-[20px] pl-12 pr-6 text-sm font-medium outline-none border border-transparent focus:border-[#6B6A4C]/30 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-2 text-red-500 text-[11px] font-bold bg-red-50 p-3 rounded-xl border border-red-100"
+              >
+                <AlertCircle size={14} />
+                {error}
+              </motion.div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full h-[54px] bg-[#1A1A1A] text-white rounded-[20px] font-bold flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-50 shadow-xl shadow-black/10"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <ChevronRight size={20} />}
+              {loading ? "验证中..." : "进入系统"}
+            </button>
+          </form>
+
+          <div className="pt-4 text-center space-y-4">
+            <p className="text-[10px] text-[#AAA396] font-medium">
+              测试账号: admin@guanxiang.ai / admin123
+            </p>
+            <div className="h-px bg-[#D9D5CC]/30 w-full" />
+            <p className="text-[9px] text-[#AAA396] leading-relaxed">
+              © 2026 观象建筑科技 · 意象引擎 v2.1<br/>
+              专业建筑人工智能合规与生成平台
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 const Logo = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -57,13 +220,262 @@ const Logo = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const AnnotationOverlay = ({ annotations }: { annotations: any[] }) => (
+  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    {annotations.map((ann, i) => (
+      <motion.div
+        key={i}
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: i * 0.1 }}
+        className="absolute"
+        style={{ left: `${ann.x}%`, top: `${ann.y}%` }}
+      >
+        <div className="relative">
+          {/* Annotation Point */}
+          <div className="w-3 h-3 bg-[#6B6A4C] rounded-full border-2 border-white shadow-lg" />
+          
+          {/* Annotation Line */}
+          <div className="absolute left-1.5 top-1.5 w-12 h-px bg-[#6B6A4C] origin-left rotate-45" />
+          
+          {/* Annotation Label */}
+          <div className="absolute left-10 top-6 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#D9D5CC] shadow-xl whitespace-nowrap">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#1A1A1A] text-white text-[9px] font-bold flex items-center justify-center">
+                {ann.id}
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-[#1A1A1A]">{ann.label}</span>
+                {ann.dimension && (
+                  <span className="text-[8px] font-bold text-[#6B6A4C]">{ann.dimension}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    ))}
+  </div>
+);
+
 export default function App() {
+  const [activeCategory, setActiveCategory] = useState('creation_workshop');
+  const [activePage, setActivePage] = useState('creation_workshop');
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['creation_workshop', 'inspection_center']);
+
+  // Knowledge Base State
+  const [regulations, setRegulations] = useState<any[]>([]);
+  const [selectedReg, setSelectedReg] = useState<any>(null);
+  const [regSearch, setRegSearch] = useState('');
+  const [selectedLibraryTag, setSelectedLibraryTag] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gemini-3.1-pro');
+  
+  // AI Annotation State
+  const [annotations, setAnnotations] = useState<any[]>([]);
+  const [isAnnotating, setIsAnnotating] = useState(false);
+  const [showAnnotationInput, setShowAnnotationInput] = useState(false);
+  const [annotationPrompt, setAnnotationPrompt] = useState('');
+
+  // Sources State
+  const [sources, setSources] = useState<any[]>([]);
+  const [collectionLogs, setCollectionLogs] = useState<any[]>([]);
+  const [showSourceModal, setShowSourceModal] = useState(false);
+  const [crawlLoading, setCrawlLoading] = useState(false);
+  const [newSource, setNewSource] = useState({
+    source_name: '',
+    official_domain: '',
+    country_region: '中国大陆',
+    discipline: '综合',
+    source_type: 'official_website',
+    update_frequency: 'weekly_scan'
+  });
+
+  // AI Search State
+  const [aiSearchResult, setAiSearchResult] = useState<any>(null);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+
+  const handleAiSearch = async () => {
+    if (!regSearch) return;
+    setIsAiSearching(true);
+    setAiSearchResult(null);
+    try {
+      const result = await searchRegulationsWithAI(regSearch);
+      setAiSearchResult(result);
+    } catch (error) {
+      console.error("AI Search Error:", error);
+    } finally {
+      setIsAiSearching(false);
+    }
+  };
+
+  const handleOptimizePrompt = async () => {
+    if (!input || isOptimizing) return;
+    setIsOptimizing(true);
+    try {
+      const optimized = await optimizePrompt(input, outputType);
+      setInput(optimized);
+    } catch (error) {
+      console.error("Optimize Prompt Error:", error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleOptimizeRefinePrompt = async () => {
+    if (!refineInput || isOptimizing) return;
+    setIsOptimizing(true);
+    try {
+      const optimized = await optimizePrompt(refineInput, outputType);
+      setRefineInput(optimized);
+    } catch (error) {
+      console.error("Optimize Refine Prompt Error:", error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const fetchRegulations = async () => {
+    const res = await fetch(`/api/regulations?q=${regSearch}`);
+    const data = await res.json();
+    setRegulations(data);
+  };
+
+  const fetchSources = async () => {
+    const res = await fetch('/api/regulation-sources');
+    const data = await res.json();
+    setSources(data);
+  };
+
+  const fetchLogs = async () => {
+    const res = await fetch('/api/collection-logs');
+    const data = await res.json();
+    setCollectionLogs(data);
+  };
+
+  const handleAddSource = async () => {
+    await fetch('/api/regulation-sources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newSource)
+    });
+    setShowSourceModal(false);
+    fetchSources();
+  };
+
+  const handleRunCollection = async (sourceId: number) => {
+    setCrawlLoading(true);
+    await fetch('/api/regulation-collection/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_id: sourceId })
+    });
+    setCrawlLoading(false);
+    fetchLogs();
+  };
+
+  useEffect(() => {
+    if (activePage === 'code_knowledge_base') fetchRegulations();
+    if (activePage === 'source_management') fetchSources();
+    if (activePage === 'official_collection_engine') fetchLogs();
+  }, [activePage, regSearch]);
+
+  const NAVIGATION = [
+    {
+      id: "inspection_center",
+      name: "观象审图",
+      icon: ShieldCheck,
+      pages: [
+        { id: "code_review", name: "规范审查" },
+        { id: "issue_detection", name: "问题识别" },
+        { id: "compliance_check", name: "条文比对" },
+        { id: "code_knowledge_base", name: "规范象库" },
+        { id: "official_collection_engine", name: "采集引擎" },
+        { id: "review_report", name: "审查报告" },
+      ]
+    },
+    {
+      id: "review_archive",
+      name: "审图档案",
+      icon: Archive,
+      pages: [
+        { id: "project_records", name: "项目记录" },
+        { id: "review_history", name: "审查历史" },
+        { id: "report_archive", name: "报告归档" },
+        { id: "version_history", name: "版本记录" },
+      ]
+    },
+    {
+      id: "image_library",
+      name: "图象库",
+      icon: Layers,
+      pages: [
+        { id: "drawing_library", name: "图纸库" },
+        { id: "render_library", name: "效果图库" },
+        { id: "analysis_library", name: "分析图库" },
+        { id: "reference_library", name: "参考图库" },
+      ]
+    },
+    {
+      id: "creation_workshop",
+      name: "造象工坊",
+      icon: Sparkles,
+      pages: []
+    },
+    {
+      id: "style_library",
+      name: "象谱库",
+      icon: Palette,
+      pages: [
+        { id: "style_library_page", name: "风格库" },
+        { id: "drawing_styles", name: "图纸表达" },
+        { id: "analysis_templates", name: "分析图模板" },
+        { id: "project_master", name: "项目母版" },
+      ]
+    },
+    {
+      id: "system_center",
+      name: "系统枢",
+      icon: Settings,
+      pages: [
+        { id: "source_management", name: "法规源管理" },
+        { id: "model_config", name: "模型配置" },
+        { id: "api_config", name: "API设置" },
+        { id: "permission_management", name: "权限管理" },
+        { id: "system_logs", name: "系统日志" },
+      ]
+    }
+  ];
+
+  const toggleCategory = (id: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+
+  const getSummary = (res: any) => {
+    if (!res || !res.structured_output) return "无摘要信息";
+    const out = res.structured_output;
+    if (res.mode === 'FULL_REVIEW') {
+      return out.compliance_summary?.summary_statement || out.conclusion?.summary || "完整审查报告";
+    }
+    if (res.mode === 'DRAWING_ANALYSIS') {
+      return out.analysis_summary || "图纸分析报告";
+    }
+    if (res.mode === 'QNA') {
+      return out.question_rewrite || "问答记录";
+    }
+    return "审查报告摘要";
+  };
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'review' | 'history' | 'library' | 'image_generation'>('image_generation');
   const [outputType, setOutputType] = useState<'render' | 'drawing' | 'analysis' | 'concept'>('render');
   const [consistencyEnabled, setConsistencyEnabled] = useState(true);
   const [consistencyLevel, setConsistencyLevel] = useState<'basic' | 'strict' | 'master_locked'>('strict');
@@ -95,6 +507,8 @@ export default function App() {
   const [batchDrawings, setBatchDrawings] = useState<any[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [refiningIdx, setRefiningIdx] = useState<number | null>(null);
+  const [refineInput, setRefineInput] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisInputRef = useRef<HTMLInputElement>(null);
@@ -141,7 +555,7 @@ export default function App() {
             if (el.classList.contains('bg-emerald-500')) el.style.backgroundColor = '#10b981';
             if (el.classList.contains('bg-red-500')) el.style.backgroundColor = '#ef4444';
             if (el.classList.contains('bg-amber-500')) el.style.backgroundColor = '#f59e0b';
-            if (el.classList.contains('bg-[#5A5A40]')) el.style.backgroundColor = '#5A5A40';
+            if (el.classList.contains('bg-[#6B6A4C]')) el.style.backgroundColor = '#6B6A4C';
             if (el.classList.contains('bg-[#F5F5F0]')) el.style.backgroundColor = '#F5F5F0';
             
             // Also check for text colors
@@ -188,7 +602,8 @@ export default function App() {
       }];
       const data = await generateReview("请作为哈萨克斯坦国家设计院的 AI 审查官，深度分析这张图纸。识别其中的所有工程元素，并根据 SN RK / SP RK 规范评估其合规性。请务必自动匹配并引用相关的法规条例（如 SN RK 3.02-01-2018 等），并给出明确的审查结论。", imageParts);
       setResult(data);
-      setActiveTab('review');
+      setActiveCategory('inspection_center');
+      setActivePage('review_report');
     } catch (e) {
       console.error(e);
     } finally {
@@ -357,9 +772,28 @@ export default function App() {
         setHasKey(false);
         return;
       }
+
+      // Fetch Real Articles from Code Knowledge Base (审查调用接口)
+      if (data.tool_input_regulation_search?.queries?.length > 0) {
+        try {
+          const query = data.tool_input_regulation_search.queries[0];
+          const res = await fetch(`/api/regulations?q=${encodeURIComponent(query)}`);
+          const regs = await res.json();
+          if (regs.length > 0) {
+            const detailRes = await fetch(`/api/regulations/${regs[0].id}`);
+            const detail = await detailRes.json();
+            data.official_articles = detail.articles.slice(0, 5); // Attach top 5 articles as official basis
+          }
+        } catch (e) {
+          console.error("Failed to fetch official articles", e);
+        }
+      }
+
       setResult(data);
       setHistory(prev => [{ input, result: data, timestamp: new Date().toISOString() }, ...prev]);
       setUploadedFiles([]); // Clear uploads after success
+      setActiveCategory('inspection_center');
+      setActivePage('review_report');
     } catch (error: any) {
       console.error(error);
       if (error.message?.includes('403') || error.status === 'PERMISSION_DENIED') {
@@ -385,9 +819,17 @@ export default function App() {
         图纸/分析/概念类型: ${outputType === 'drawing' ? drawingTypes.join(', ') : outputType === 'analysis' ? analysisTypes.join(', ') : conceptTypes.join(', ')}
       `;
       
+      const imageParts = referenceImages.map(img => ({
+        inlineData: {
+          data: img.data,
+          mimeType: "image/png"
+        }
+      }));
+
       const reviewResult = await generateReview(`用户请求生成${outputType === 'drawing' ? '图纸' : outputType === 'analysis' ? '分析图' : '概念图'}，请理解其复杂的工程需求并转化为专业的 CAD 绘图提示词。
+      如果提供了参考图（效果图），请深度分析其空间结构、建筑形式和构造细节，并将其转化为精确的工程图纸表达。
       上下文信息：${context}
-      用户输入：${userPrompt}`);
+      用户输入：${userPrompt}`, imageParts);
       
       let finalPrompt = userPrompt;
       if (reviewResult.tool_input_drawing_generator?.prompt) {
@@ -398,7 +840,7 @@ export default function App() {
       setGenerationStatus("正在使用 Nano Banana 2 引擎绘制图纸...");
       
       // 2. Image Generation via Flash Image
-      const img = await generateImage(finalPrompt, { aspectRatio });
+      const img = await generateImage(finalPrompt, { aspectRatio }, imageParts);
       if (img) {
         setGeneratedImages(prev => [img, ...prev]);
         setImageHistory(prev => [{
@@ -436,9 +878,17 @@ export default function App() {
         一致性项目: ${Object.entries(consistencyItems).filter(([_, v]) => v).map(([k]) => k).join(', ')}
       `;
 
+      const imageParts = referenceImages.map(ref => ({
+        inlineData: {
+          data: ref.data,
+          mimeType: "image/png"
+        }
+      }));
+
       const reviewResult = await generateReview(`用户请求生成建筑效果图，请将其自然语言描述转化为具有商业美学、专业光影和材质细节的渲染提示词。
+      如果提供了参考图，请在保持一致性的基础上进行美学增强或变体生成。
       上下文信息：${context}
-      用户输入：${userPrompt}`);
+      用户输入：${userPrompt}`, imageParts);
       
       let finalPrompt = userPrompt;
       if (reviewResult.tool_input_drawing_generator?.prompt) {
@@ -447,13 +897,6 @@ export default function App() {
 
       setGenerationStatus("正在执行专业建筑渲染...");
       
-      const imageParts = referenceImages.map(ref => ({
-        inlineData: {
-          data: ref.data,
-          mimeType: "image/png"
-        }
-      }));
-
       // 2. Image Generation via Flash Image
       const img = await generateImage(finalPrompt, { aspectRatio }, imageParts);
       if (img) {
@@ -479,6 +922,94 @@ export default function App() {
     }
   };
 
+  const handleAiAnnotate = async () => {
+    if (!annotationPrompt.trim() || isAnnotating) return;
+    
+    setIsAnnotating(true);
+    setGenerationStatus("AI 正在识别构件并生成标注...");
+    
+    try {
+      // Simulate AI recognition delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockAnnotations = [
+        { id: '01', x: 25, y: 30, label: '承重墙 (C30)', dimension: '200mm' },
+        { id: '02', x: 55, y: 45, label: '剪力墙 (C40)', dimension: '300mm' },
+        { id: '03', x: 75, y: 20, label: '电梯井', dimension: '2400x2400' },
+        { id: '04', x: 40, y: 70, label: '双跑楼梯', dimension: 'W=1200' },
+        { id: '05', x: 15, y: 85, label: '外墙保温层', dimension: '100mm' }
+      ];
+      
+      // Filter or modify based on prompt if needed
+      const filtered = mockAnnotations.filter(ann => 
+        annotationPrompt.includes(ann.label) || 
+        annotationPrompt.includes('全部') || 
+        annotationPrompt.length < 5
+      );
+
+      setAnnotations(filtered.length > 0 ? filtered : mockAnnotations);
+      setShowAnnotationInput(false);
+      setAnnotationPrompt('');
+    } catch (error) {
+      console.error("Annotation error:", error);
+    } finally {
+      setIsAnnotating(false);
+      setGenerationStatus("");
+    }
+  };
+
+  const handleRefineImage = async (idx: number) => {
+    if (!refineInput) return;
+    const originalImage = generatedImages[idx];
+    
+    setImageLoading(true);
+    setGenerationStatus("正在启用内置 nanobana-2 引擎进行精准重绘...");
+    
+    try {
+      const imageParts = [{
+        inlineData: {
+          data: originalImage.split(',')[1],
+          mimeType: "image/png"
+        }
+      }];
+
+      const reviewResult = await generateReview(`用户请求对已生成的${outputType === 'drawing' ? '图纸' : outputType === 'render' ? '效果图' : '分析图'}进行二次编辑。
+      反馈意见：${refineInput}
+      请理解修改需求，并将其转化为专业的绘图提示词。`, imageParts);
+      
+      let finalPrompt = refineInput;
+      if (reviewResult.tool_input_drawing_generator?.prompt) {
+        finalPrompt = reviewResult.tool_input_drawing_generator.prompt;
+      }
+
+      const img = await generateImage(finalPrompt, { aspectRatio }, imageParts);
+      if (img) {
+        setGeneratedImages(prev => [img, ...prev]);
+        if (previewImage === originalImage) {
+          setPreviewImage(img);
+        }
+        setImageHistory(prev => [{
+          img,
+          prompt: refineInput,
+          timestamp: Date.now(),
+          aspectRatio,
+          outputType,
+          styleCategory,
+          selectedTags: [...selectedTags],
+          isRefinement: true,
+          originalImageIdx: idx
+        }, ...prev]);
+        setRefiningIdx(null);
+        setRefineInput('');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setImageLoading(false);
+      setGenerationStatus("");
+    }
+  };
+
   if (hasKey === false) {
     return (
       <div className="min-h-screen bg-[#F5F5F0] flex items-center justify-center p-8">
@@ -495,14 +1026,14 @@ export default function App() {
               href="https://ai.google.dev/gemini-api/docs/billing" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-xs text-[#5A5A40] underline block mt-2"
+              className="text-xs text-[#6B6A4C] underline block mt-2"
             >
               了解计费文档
             </a>
           </div>
           <button 
             onClick={handleOpenKeySelector}
-            className="w-full py-4 bg-[#5A5A40] text-white rounded-2xl font-bold hover:bg-[#4A4A30] transition-all"
+            className="w-full py-4 bg-[#6B6A4C] text-white rounded-2xl font-bold hover:bg-[#4A4A30] transition-all"
           >
             选择 API 密钥
           </button>
@@ -511,8 +1042,12 @@ export default function App() {
     );
   }
 
+  if (!user) {
+    return <Login onLogin={(u) => setUser(u)} />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#F5F5F0] text-[#1A1A1A] font-sans selection:bg-[#5A5A40]/20">
+    <div className="min-h-screen bg-[#F0F0ED] text-[#1A1A1A] font-sans selection:bg-[#6B6A4C]/20">
       {/* Hidden Inputs for File Uploads */}
       <input 
         type="file" 
@@ -538,111 +1073,325 @@ export default function App() {
       />
 
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-[252px] bg-[#F8F6F1] border-r border-[#D9D5CC] z-50 flex flex-col p-6">
-        <div className="mb-10">
-          <div className="flex items-center gap-4 mb-1">
-            <div className="w-12 h-12 bg-[#6B6A4C] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-[#6B6A4C]/20">
-              <Logo className="w-8 h-8" />
+      <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#F5F5F2] border-r border-[#D9D5CC] z-50 flex flex-col overflow-hidden">
+        <div className="p-6 pb-4">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 bg-[#1A1A1A] rounded-xl flex items-center justify-center text-white shadow-lg">
+              <Logo className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#222222] leading-none mb-1">观象</h1>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#8C877C] font-bold">VISIONFORM</p>
+              <h1 className="font-serif text-xl font-bold tracking-tight text-[#1A1A1A] leading-none mb-1">观象AI</h1>
+              <p className="text-[9px] uppercase tracking-[0.2em] text-[#8C877C] font-bold">GuanXiang AI</p>
             </div>
           </div>
+          <p className="text-[9px] text-[#8C877C] font-medium mt-2 border-l-2 border-[#6B6A4C] pl-2">
+            观象以制器 · 建筑智能系统
+          </p>
         </div>
 
-        <nav className="flex-1 space-y-2">
-          {[
-            { key: 'review', label: '智能审查', icon: LayoutDashboard },
-            { key: 'history', label: '审查历史', icon: History },
-            { key: 'library', label: '图纸库', icon: Layers },
-            { key: 'image_generation', label: '图像生成', icon: Sparkles },
-          ].map((item) => (
-            <button 
-              key={item.key}
-              onClick={() => setActiveTab(item.key as any)}
-              className={cn(
-                "w-full flex items-center gap-4 px-5 py-4 rounded-full transition-all duration-300 group",
-                activeTab === item.key ? "bg-[#6B6A4C] text-white shadow-xl shadow-[#6B6A4C]/30" : "text-[#222222] hover:bg-[#6B6A4C]/5"
-              )}
-            >
-              <item.icon size={20} className={cn(activeTab === item.key ? "text-white" : "text-[#222222]/60 group-hover:text-[#6B6A4C]")} />
-              <span className="text-sm font-bold tracking-wide">{item.label}</span>
-            </button>
+        <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 scrollbar-hide">
+          {NAVIGATION.map((category) => (
+            <div key={category.id} className="space-y-1">
+              <button 
+                onClick={() => {
+                  toggleCategory(category.id);
+                  if (category.pages.length === 0) {
+                    setActiveCategory(category.id);
+                    setActivePage(category.id);
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                  activeCategory === category.id ? "bg-[#1A1A1A]/5 text-[#1A1A1A]" : "text-[#1A1A1A]/60 hover:bg-[#1A1A1A]/5 hover:text-[#1A1A1A]"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <category.icon size={18} className={cn(activeCategory === category.id ? "text-[#6B6A4C]" : "text-[#1A1A1A]/40 group-hover:text-[#6B6A4C]")} />
+                  <span className="text-sm font-bold tracking-tight">{category.name}</span>
+                </div>
+                {expandedCategories.includes(category.id) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              
+              <AnimatePresence initial={false}>
+                {expandedCategories.includes(category.id) && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden pl-9 space-y-1"
+                  >
+                    {category.pages.map((page) => (
+                      <button
+                        key={page.id}
+                        onClick={() => {
+                          setActiveCategory(category.id);
+                          setActivePage(page.id);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                          activePage === page.id ? "text-[#6B6A4C] bg-[#6B6A4C]/5 font-bold" : "text-[#1A1A1A]/50 hover:text-[#1A1A1A] hover:bg-[#1A1A1A]/5"
+                        )}
+                      >
+                        {page.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ))}
         </nav>
 
-        <div className="mt-auto">
-          <div className="bg-[#F1EFEB] p-5 rounded-[22px] border border-[#D9D5CC]/50">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C] mb-2">System Status</p>
+        <div className="p-6 mt-auto border-t border-[#D9D5CC]/50 bg-[#F5F5F2]/80 backdrop-blur-sm">
+          <div className="bg-white p-4 rounded-2xl border border-[#D9D5CC]/50 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-[#6B6A4C]/10 rounded-lg flex items-center justify-center text-[#6B6A4C]">
+                <Cpu size={16} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-[#1A1A1A]">观象 Agent</p>
+                <p className="text-[8px] text-[#8C877C] uppercase font-bold">System Status</p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-[#79815C] rounded-full animate-pulse" />
-              <span className="text-xs font-bold text-[#222222]">Online & Secure</span>
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-bold text-[#1A1A1A]/60">在线 · 安全运行中</span>
             </div>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="ml-[252px] min-h-screen flex flex-col bg-[#ECEAE4]">
+      <main className="ml-[280px] min-h-screen flex flex-col bg-[#F0F0ED]">
         {/* Header */}
-        <header className="h-20 bg-[#F1EFEB] border-b border-[#D9D5CC] flex items-center justify-between px-10 sticky top-0 z-40">
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold text-[#8C877C] uppercase tracking-[0.15em]">Current Mode:</span>
-            <div className="px-3 py-1.5 bg-[#E7E4DB] text-[#5D5A4C] rounded-full text-[10px] font-bold tracking-widest">
-              {activeTab === 'image_generation' ? outputType.toUpperCase() : (result?.mode || 'IDLE')}
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-[#D9D5CC] flex items-center justify-between px-8 sticky top-0 z-40">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-[#8C877C]">
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {NAVIGATION.find(c => c.id === activeCategory)?.name}
+              </span>
+              <ChevronRight size={12} />
+              <span className="text-[10px] font-bold text-[#1A1A1A] uppercase tracking-widest">
+                {NAVIGATION.find(c => c.id === activeCategory)?.pages.find(p => p.id === activePage)?.name}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <button className="p-2.5 hover:bg-[#6B6A4C]/5 rounded-full transition-colors text-[#8C877C] hover:text-[#6B6A4C]">
-              <Settings size={22} />
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F5F5F2] rounded-full border border-[#D9D5CC]/50">
+              <Activity size={14} className="text-[#6B6A4C]" />
+              <span className="text-[10px] font-bold text-[#1A1A1A]/60">意象引擎 v2.1</span>
+            </div>
+            <button 
+              onClick={() => {
+                setActiveCategory('system_center');
+                setActivePage('model_config');
+                if (!expandedCategories.includes('system_center')) {
+                  setExpandedCategories(prev => [...prev, 'system_center']);
+                }
+              }}
+              className="p-2 hover:bg-[#1A1A1A]/5 rounded-full transition-colors text-[#1A1A1A]/40 hover:text-[#1A1A1A]"
+            >
+              <Settings size={18} />
             </button>
-            <div className="w-11 h-11 rounded-full bg-[#8A8768] border-2 border-white shadow-md" />
+            <div className="relative">
+              <button 
+                onClick={() => setShowGuide(showGuide === activePage ? null : activePage)}
+                className={cn(
+                  "p-2 rounded-full transition-all",
+                  showGuide === activePage ? "bg-[#6B6A4C] text-white" : "hover:bg-[#1A1A1A]/5 text-[#1A1A1A]/40 hover:text-[#1A1A1A]"
+                )}
+              >
+                <HelpCircle size={18} />
+              </button>
+              <AnimatePresence>
+                {showGuide === activePage && (
+                  <ModuleGuide 
+                    title={NAVIGATION.find(c => c.id === activeCategory)?.pages.find(p => p.id === activePage)?.name || NAVIGATION.find(c => c.id === activePage)?.name || "功能模块"}
+                    onClose={() => setShowGuide(null)}
+                    steps={
+                      activePage === 'code_review' ? [
+                        "在下方输入框中描述您的建筑设计需求或上传设计图纸。",
+                        "AI 将自动识别设计意图并检索相关的国家及地方建筑规范。",
+                        "系统会实时输出合规性审查建议，并标注潜在的违规风险。",
+                        "您可以点击审查结果中的条文编号，直接跳转至法规原文查看详情。"
+                      ] :
+                      activePage === 'creation_workshop' ? [
+                        "选择您想要生成的输出类型：效果图、图纸、分析图或概念图。",
+                        "输入详细的文字描述，或拖拽参考图到 STEP 2 区域作为视觉引导。",
+                        "在 STEP 3 中选择特定的建筑风格标签，以确保生成结果符合审美预期。",
+                        "点击“开始生成”，在右侧预览窗口实时查看 AI 的创作成果。"
+                      ] :
+                      activePage === 'drawing_library' ? [
+                        "左侧边栏列出了所有自动提取的标签，点击标签可快速筛选相关图像。",
+                        "使用顶部的搜索框，通过提示词关键字或生成类型进行精准检索。",
+                        "点击图像可进入全屏预览模式，支持下载高清原图或进行 AI 智能分析。",
+                        "您可以将生成的图像直接拖拽回“造像工坊”作为新的参考图使用。"
+                      ] :
+                      activePage === 'code_knowledge_base' ? [
+                        "在搜索框输入规范名称、编号或关键字进行全局检索。",
+                        "左侧分类树支持按国家标准、行业标准、地方标准进行层级浏览。",
+                        "点击条文可查看详细内容，系统会自动关联相关的图集和解释说明。",
+                        "支持“AI 问答”模式，直接向法规库提问，获取精准的条文引用建议。"
+                      ] :
+                      activePage === 'official_collection_engine' ? [
+                        "系统实时监控全国各级政府及住建部门的官方信源。",
+                        "“采集日志”展示了最新的法规更新动态和政策解读文件。",
+                        "点击“立即同步”可手动触发特定信源的增量数据采集任务。",
+                        "所有新采集的法规需经过人工或 AI 预审后方可入库生效。"
+                      ] :
+                      activePage === 'source_management' ? [
+                        "管理系统接入的官方信源，支持添加新的政府门户或行业网站。",
+                        "您可以配置每个信源的采集频率（如：每日扫描、每周扫描）。",
+                        "“健康状态”显示了信源链接的可访问性及数据解析的成功率。",
+                        "支持对信源进行分类标签管理，方便采集引擎进行优先级调度。"
+                      ] :
+                      activePage === 'review_history' ? [
+                        "这里记录了您所有的 AI 审查任务，支持按项目名称或时间排序。",
+                        "点击历史记录可重新加载完整的审查对话和生成的合规报告。",
+                        "支持对历史审查结果进行“二次复核”，AI 会基于最新法规进行比对。",
+                        "您可以一键导出历史审查报告的 PDF 或 Excel 版本。"
+                      ] :
+                      ["欢迎使用观象建筑 AI 平台，该模块的功能说明正在完善中..."]
+                    }
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+            <div className="relative">
+              <button 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-10 h-10 rounded-full bg-[#1A1A1A] border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold hover:scale-105 transition-transform overflow-hidden"
+              >
+                {user.name.substring(0, 2)}
+              </button>
+              
+              <AnimatePresence>
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-3 w-64 bg-white rounded-[24px] shadow-2xl border border-[#D9D5CC]/30 p-2 z-50"
+                  >
+                    <div className="p-4 border-b border-[#D9D5CC]/30 mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#6B6A4C]/10 rounded-full flex items-center justify-center text-[#6B6A4C]">
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#1A1A1A]">{user.name}</p>
+                          <p className="text-[10px] text-[#AAA396] font-medium">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-[#6B6A4C]/10 text-[#6B6A4C] text-[9px] font-bold rounded-full uppercase tracking-widest">
+                          {user.role === 'admin' ? '系统管理员' : '普通用户'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-[#F5F5F2] rounded-xl transition-all">
+                        <Settings size={14} />
+                        个人设置
+                      </button>
+                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-[#F5F5F2] rounded-xl transition-all">
+                        <ShieldCheck size={14} />
+                        安全中心
+                      </button>
+                      <div className="h-px bg-[#D9D5CC]/30 my-1 mx-2" />
+                      <button 
+                        onClick={() => {
+                          setUser(null);
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      >
+                        <LogOut size={14} />
+                        退出登录
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 p-8 overflow-y-auto" ref={scrollRef}>
           <AnimatePresence mode="wait">
-            {activeTab === 'review' && (
+            {activePage === 'code_review' && (
               <motion.div 
-                key="review"
+                key="code_review"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className="max-w-4xl mx-auto space-y-8"
               >
                 {/* Welcome / Info */}
-                {!result && !loading && (
-                  <div className="text-center py-20 space-y-6">
-                    <div className="w-20 h-20 bg-white rounded-3xl shadow-xl shadow-[#1A1A1A]/5 mx-auto flex items-center justify-center">
-                      <Building2 size={40} className="text-[#5A5A40]" />
-                    </div>
-                    <div className="space-y-2">
-                      <h2 className="font-serif text-3xl font-bold">观象AI 智能审查系统</h2>
-                      <p className="text-[#1A1A1A]/60 max-w-md mx-auto">
-                        集成建筑合规审查与工程图纸规划。支持多维度的规范体系与技术标准。
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto pt-8">
-                      {[
-                        { icon: Search, label: "合规查询", desc: "SN/SP 规范快速检索" },
-                        { icon: FileText, label: "项目审查", desc: "全专业合规性评估" },
-                        { icon: Layers, label: "工程制图", desc: "标准 CAD 逻辑出图" }
-                      ].map((item, i) => (
-                        <div key={i} className="bg-white p-6 rounded-2xl border border-[#1A1A1A]/5 text-left space-y-3">
-                          <item.icon size={24} className="text-[#5A5A40]" />
-                          <div>
-                            <p className="font-bold text-sm">{item.label}</p>
-                            <p className="text-xs text-[#1A1A1A]/50">{item.desc}</p>
-                          </div>
+                <div className="text-center py-20 space-y-6">
+                  <div className="w-20 h-20 bg-white rounded-3xl shadow-xl shadow-[#1A1A1A]/5 mx-auto flex items-center justify-center">
+                    <Building2 size={40} className="text-[#6B6A4C]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="font-serif text-3xl font-bold">观象AI 智能审查系统</h2>
+                    <p className="text-[#1A1A1A]/60 max-w-md mx-auto">
+                      集成建筑合规审查与工程图纸规划。支持多维度的规范体系与技术标准。
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto pt-8">
+                    {[
+                      { icon: Search, label: "合规查询", desc: "SN/SP 规范快速检索" },
+                      { icon: FileText, label: "项目审查", desc: "全专业合规性评估" },
+                      { icon: Layers, label: "工程制图", desc: "标准 CAD 逻辑出图" }
+                    ].map((item, i) => (
+                      <div key={i} className="bg-white p-6 rounded-2xl border border-[#1A1A1A]/5 text-left space-y-3">
+                        <item.icon size={24} className="text-[#6B6A4C]" />
+                        <div>
+                          <p className="font-bold text-sm">{item.label}</p>
+                          <p className="text-xs text-[#1A1A1A]/50">{item.desc}</p>
                         </div>
-                      ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePage === 'review_report' && (
+              <motion.div 
+                key="review_report"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="max-w-4xl mx-auto space-y-8"
+              >
+                {!result && !loading && (
+                  <div className="text-center py-20 space-y-4">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm mx-auto flex items-center justify-center text-[#1A1A1A]/20">
+                      <FileText size={32} />
                     </div>
+                    <p className="text-[#1A1A1A]/40 font-bold">暂无审查报告，请先在“规范审查”中提交请求</p>
+                    <button 
+                      onClick={() => {
+                        setActiveCategory('inspection_center');
+                        setActivePage('code_review');
+                      }}
+                      className="px-6 py-2 bg-[#1A1A1A] text-white rounded-full text-sm font-bold"
+                    >
+                      前往审查
+                    </button>
                   </div>
                 )}
 
-                {/* Result Display */}
+                {loading && (
+                  <div className="text-center py-20 space-y-4">
+                    <Loader2 size={40} className="animate-spin text-[#6B6A4C] mx-auto" />
+                    <p className="text-[#1A1A1A]/60 font-bold">正在生成审查报告...</p>
+                  </div>
+                )}
+
                 {result && (
                   <div className="space-y-6">
                     {/* Router Info */}
@@ -661,7 +1410,7 @@ export default function App() {
 
                     {/* Structured Output */}
                     <div ref={reportRef} className="bg-white rounded-3xl border border-[#1A1A1A]/5 shadow-sm overflow-hidden">
-                      <div className="bg-[#5A5A40] px-6 py-4 flex items-center justify-between no-print">
+                      <div className="bg-[#1A1A1A] px-6 py-4 flex items-center justify-between no-print">
                         <h3 className="text-white font-bold text-sm">审查结果详情</h3>
                         <div className="flex gap-2">
                           <button 
@@ -679,7 +1428,7 @@ export default function App() {
                         {/* PDF Only Header */}
                         <div className="hidden print-only flex items-center justify-between border-b-2 border-[#1A1A1A] pb-6 mb-8">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-[#5A5A40] rounded-xl flex items-center justify-center text-white">
+                            <div className="w-12 h-12 bg-[#1A1A1A] rounded-xl flex items-center justify-center text-white">
                               <ShieldCheck size={32} />
                             </div>
                             <div>
@@ -724,6 +1473,31 @@ export default function App() {
                           </div>
                         )}
 
+                        {/* Official Basis from Code Knowledge Base */}
+                        {result.official_articles && result.official_articles.length > 0 && (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-sm flex items-center gap-2">
+                              <ShieldCheck size={16} className="text-[#6B6A4C]" />
+                              官方规范依据 (Code Knowledge Base)
+                            </h4>
+                            <div className="grid gap-3">
+                              {result.official_articles.map((art: any, idx: number) => (
+                                <div key={idx} className="p-4 bg-[#F5F5F2] rounded-2xl border border-[#D9D5CC]/30">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-bold text-[#6B6A4C] uppercase tracking-widest">
+                                      {art.article_number || `条文 ${idx + 1}`}
+                                    </span>
+                                    <span className="px-2 py-0.5 bg-white rounded text-[8px] font-bold text-[#8C877C] uppercase">
+                                      已验证版本
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-[#1A1A1A]/80 leading-relaxed">{art.article_text}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Drawing Analysis Output */}
                         {result.mode === 'DRAWING_ANALYSIS' && (
                           <div className="space-y-8">
@@ -735,7 +1509,7 @@ export default function App() {
                             {result.structured_output?.detected_elements?.length > 0 && (
                               <div className="space-y-3">
                                 <h4 className="font-bold text-sm flex items-center gap-2">
-                                  <Layers size={16} className="text-[#5A5A40]" />
+                                  <Layers size={16} className="text-[#6B6A4C]" />
                                   识别到的工程元素
                                 </h4>
                                 <div className="flex flex-wrap gap-2">
@@ -751,7 +1525,7 @@ export default function App() {
                             {result.structured_output?.compliance_findings?.length > 0 && (
                               <div className="space-y-4">
                                 <h4 className="font-bold text-sm flex items-center gap-2">
-                                  <ShieldCheck size={16} className="text-[#5A5A40]" />
+                                  <ShieldCheck size={16} className="text-[#6B6A4C]" />
                                   合规性发现
                                 </h4>
                                 <div className="grid gap-4">
@@ -778,7 +1552,7 @@ export default function App() {
                             {result.structured_output?.answers_to_user_questions?.length > 0 && (
                               <div className="space-y-3">
                                 <h4 className="font-bold text-sm flex items-center gap-2">
-                                  <MessageSquare size={16} className="text-[#5A5A40]" />
+                                  <MessageSquare size={16} className="text-[#6B6A4C]" />
                                   问题解答
                                 </h4>
                                 <div className="space-y-3">
@@ -804,14 +1578,14 @@ export default function App() {
                             {result.structured_output?.legal_basis?.length > 0 && (
                               <div className="space-y-3">
                                 <h4 className="font-bold text-sm flex items-center gap-2">
-                                  <FileText size={16} className="text-[#5A5A40]" />
+                                  <FileText size={16} className="text-[#6B6A4C]" />
                                   法律依据
                                 </h4>
                                 <div className="grid gap-3">
                                   {result.structured_output.legal_basis.map((basis: any, i: number) => (
                                     <div key={i} className="p-4 border border-[#1A1A1A]/5 rounded-xl hover:bg-[#F5F5F0] transition-colors">
                                       <div className="flex justify-between items-start mb-2">
-                                        <p className="text-xs font-bold text-[#5A5A40]">{basis.doc_id} {basis.clause_id}</p>
+                                        <p className="text-xs font-bold text-[#6B6A4C]">{basis.doc_id} {basis.clause_id}</p>
                                         <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold uppercase">{basis.status}</span>
                                       </div>
                                       <p className="text-xs font-bold mb-1">{basis.clause_title}</p>
@@ -844,7 +1618,7 @@ export default function App() {
                                   <button 
                                     onClick={() => handleBatchGenerate(result.structured_output.issue_log)}
                                     disabled={batchLoading}
-                                    className="flex items-center gap-2 px-4 py-2 bg-[#5A5A40] text-white text-xs font-bold rounded-xl hover:bg-[#4A4A30] transition-all disabled:opacity-50"
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#6B6A4C] text-white text-xs font-bold rounded-xl hover:bg-[#4A4A30] transition-all disabled:opacity-50"
                                   >
                                     {batchLoading ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
                                     {batchLoading ? "批量生成中..." : "批量生成 C1/C2 图纸"}
@@ -869,7 +1643,7 @@ export default function App() {
                                         className="break-inside-avoid bg-white p-3 rounded-2xl border border-[#1A1A1A]/10 shadow-sm space-y-3"
                                       >
                                         <div className="flex justify-between items-start">
-                                          <span className="text-[10px] font-mono font-bold text-[#5A5A40]">{draw.fig}</span>
+                                          <span className="text-[10px] font-mono font-bold text-[#6B6A4C]">{draw.fig}</span>
                                           <span className="text-[10px] font-bold text-[#1A1A1A]/30">{draw.issueId}</span>
                                         </div>
                                         <div className="relative group cursor-pointer" onClick={() => setPreviewImage(draw.img)}>
@@ -884,7 +1658,7 @@ export default function App() {
                                             </button>
                                             <button 
                                               onClick={(e) => { e.stopPropagation(); handleAnalyzeDrawing(draw.img); }}
-                                              className="p-2 bg-white rounded-full text-[#5A5A40] hover:scale-110 transition-transform"
+                                              className="p-2 bg-white rounded-full text-[#6B6A4C] hover:scale-110 transition-transform"
                                               title="AI 智能分析"
                                             >
                                               <Search size={16} />
@@ -931,7 +1705,7 @@ export default function App() {
                                       </div>
                                     </div>
                                     <div className="pt-2 border-t border-[#1A1A1A]/5">
-                                      <p className="text-xs font-bold text-[#5A5A40]">建议措施：{issue.recommendation}</p>
+                                      <p className="text-xs font-bold text-[#6B6A4C]">建议措施：{issue.recommendation}</p>
                                     </div>
                                   </div>
                                 ))}
@@ -1018,7 +1792,7 @@ export default function App() {
                                         </button>
                                         <button 
                                           onClick={(e) => { e.stopPropagation(); handleAnalyzeDrawing(img); }}
-                                          className="p-3 bg-white rounded-full text-[#5A5A40] hover:scale-110 transition-transform"
+                                          className="p-3 bg-white rounded-full text-[#6B6A4C] hover:scale-110 transition-transform"
                                           title="AI 智能分析"
                                         >
                                           <Search size={20} />
@@ -1083,8 +1857,8 @@ export default function App() {
                                 <div className="w-32 h-px bg-[#1A1A1A]" />
                                 <p className="text-[10px] text-[#1A1A1A]/40">AI Compliance Officer</p>
                               </div>
-                              <div className="w-16 h-16 bg-[#5A5A40]/10 rounded-full flex items-center justify-center border border-[#5A5A40]/20">
-                                <ShieldCheck size={32} className="text-[#5A5A40]/40" />
+                              <div className="w-16 h-16 bg-[#6B6A4C]/10 rounded-full flex items-center justify-center border border-[#6B6A4C]/20">
+                                <ShieldCheck size={32} className="text-[#6B6A4C]/40" />
                               </div>
                             </div>
                           </div>
@@ -1096,44 +1870,612 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === 'history' && (
+            {activePage === 'code_knowledge_base' && (
               <motion.div 
-                key="history"
+                key="code_knowledge_base"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="max-w-4xl mx-auto space-y-4"
+                className="max-w-6xl mx-auto space-y-6"
               >
-                <h2 className="font-serif text-2xl font-bold mb-6">审查历史记录</h2>
-                {history.length === 0 ? (
-                  <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-[#1A1A1A]/10">
-                    <p className="text-[#1A1A1A]/40">暂无历史记录</p>
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <h2 className="font-serif text-3xl font-bold text-[#1A1A1A]">规范象库</h2>
+                    <p className="text-sm text-[#8C877C] mt-1">结构化存储的建筑法规、技术标准与规范条文</p>
                   </div>
-                ) : (
-                  history.map((item, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => { setResult(item.result); setActiveTab('review'); }}
-                      className="bg-white p-6 rounded-2xl border border-[#1A1A1A]/5 hover:border-[#5A5A40]/30 cursor-pointer transition-all group"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#1A1A1A]/40">
-                          {new Date(item.timestamp).toLocaleString()}
-                        </span>
-                        <span className="px-2 py-0.5 bg-[#5A5A40]/10 text-[#5A5A40] text-[10px] font-bold rounded uppercase">
-                          {item.result.mode}
-                        </span>
-                      </div>
-                      <p className="font-medium text-sm line-clamp-1 group-hover:text-[#5A5A40] transition-colors">{item.input}</p>
+                  <div className="flex gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8C877C]" size={18} />
+                      <input 
+                        type="text" 
+                        placeholder="搜索法规名称或编号..."
+                        value={regSearch}
+                        onChange={(e) => setRegSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                        className="pl-12 pr-6 py-3 bg-white border border-[#D9D5CC] rounded-2xl text-sm outline-none focus:border-[#6B6A4C] w-80 shadow-sm"
+                      />
                     </div>
-                  ))
+                    <button 
+                      onClick={handleAiSearch}
+                      disabled={isAiSearching || !regSearch}
+                      className="px-6 py-3 bg-[#1A1A1A] text-white rounded-2xl text-sm font-bold hover:bg-black transition-all flex items-center gap-2 shadow-lg shadow-black/5"
+                    >
+                      {isAiSearching ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-amber-400" />}
+                      AI 联网搜索
+                    </button>
+                  </div>
+                </div>
+
+                {aiSearchResult && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] p-8 rounded-[40px] text-white shadow-2xl relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <Globe size={120} />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-amber-400/20 rounded-xl flex items-center justify-center text-amber-400">
+                            <Sparkles size={20} />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold">{aiSearchResult.title}</h3>
+                            <p className="text-xs text-white/40 mt-1">AI 联网匹配结果 • 来源: Google Search Grounding</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setAiSearchResult(null)}
+                          className="p-2 hover:bg-white/10 rounded-full transition-all"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">法规编号</p>
+                          <p className="text-sm font-bold">{aiSearchResult.regulation_number || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">发布机构</p>
+                          <p className="text-sm font-bold">{aiSearchResult.issuing_authority || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">生效日期</p>
+                          <p className="text-sm font-bold">{aiSearchResult.effective_date || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">当前状态</p>
+                          <p className="text-sm font-bold text-amber-400">{aiSearchResult.status || '待核验'}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-3">关键条文预览</h4>
+                          <div className="grid gap-3">
+                            {aiSearchResult.key_clauses?.map((clause: string, idx: number) => (
+                              <div key={idx} className="p-4 bg-white/5 rounded-2xl border border-white/5 text-sm text-white/80 leading-relaxed">
+                                {clause}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                          <div className="flex gap-3">
+                            {aiSearchResult.searchSources?.slice(0, 3).map((source: any, idx: number) => (
+                              <a 
+                                key={idx} 
+                                href={source.uri} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-2 text-[10px] text-white/40 hover:text-white transition-all bg-white/5 px-3 py-1.5 rounded-full"
+                              >
+                                <ExternalLink size={12} />
+                                {source.title?.slice(0, 20)}...
+                              </a>
+                            ))}
+                          </div>
+                          <button 
+                            onClick={async () => {
+                              setCrawlLoading(true);
+                              try {
+                                const res = await fetch('/api/regulations/import-ai', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(aiSearchResult)
+                                });
+                                if (res.ok) {
+                                  alert("AI 匹配法规已成功导入规范象库");
+                                  setAiSearchResult(null);
+                                  fetchRegulations();
+                                } else {
+                                  alert("导入失败，请重试");
+                                }
+                              } catch (error) {
+                                console.error("Import Error:", error);
+                                alert("导入过程中发生错误");
+                              } finally {
+                                setCrawlLoading(false);
+                              }
+                            }}
+                            disabled={crawlLoading}
+                            className="px-8 py-2.5 bg-white text-[#1A1A1A] rounded-full text-sm font-bold hover:bg-amber-400 transition-all flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {crawlLoading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                            一键入库
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-12 gap-6">
+                  <div className="col-span-4 space-y-4">
+                    <div className="bg-white rounded-[32px] border border-[#1A1A1A]/5 shadow-sm overflow-hidden">
+                      <div className="p-4 bg-[#F5F5F2] border-bottom border-[#D9D5CC]/30">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C]">法规列表</span>
+                      </div>
+                        <div className="max-h-[600px] overflow-y-auto">
+                        {regulations.map((reg) => (
+                          <div 
+                            key={reg.id}
+                            onClick={async () => {
+                              const res = await fetch(`/api/regulations/${reg.id}`);
+                              const data = await res.json();
+                              setSelectedReg(data);
+                            }}
+                            className={cn(
+                              "p-4 border-b border-[#1A1A1A]/5 cursor-pointer transition-all hover:bg-[#F5F5F2]",
+                              selectedReg?.id === reg.id && "bg-[#6B6A4C]/5 border-l-4 border-l-[#6B6A4C]"
+                            )}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="px-2 py-0.5 bg-[#6B6A4C]/10 text-[#6B6A4C] text-[10px] font-bold rounded">
+                                {reg.discipline}
+                              </span>
+                              <span className="text-[10px] text-[#8C877C]">{reg.publish_date || '未知日期'}</span>
+                            </div>
+                            <h4 className="font-bold text-sm text-[#1A1A1A] line-clamp-2">{reg.title}</h4>
+                            <p className="text-[10px] text-[#8C877C] mt-1">{reg.regulation_number}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-span-8">
+                    {selectedReg ? (
+                      <div className="bg-white rounded-[32px] border border-[#1A1A1A]/5 shadow-sm min-h-[600px] flex flex-col">
+                        <div className="p-8 border-b border-[#D9D5CC]/30">
+                          <div className="flex justify-between items-start mb-4">
+                            <h3 className="font-serif text-2xl font-bold text-[#1A1A1A]">{selectedReg.title}</h3>
+                            <a 
+                              href={selectedReg.detail_url} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="p-2 bg-[#F5F5F2] rounded-xl text-[#6B6A4C] hover:bg-[#6B6A4C] hover:text-white transition-all"
+                            >
+                              <Maximize2 size={18} />
+                            </a>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="p-3 bg-[#F5F5F2] rounded-2xl">
+                              <p className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest mb-1">法规编号</p>
+                              <p className="text-xs font-bold">{selectedReg.regulation_number || 'N/A'}</p>
+                            </div>
+                            <div className="p-3 bg-[#F5F5F2] rounded-2xl">
+                              <p className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest mb-1">生效状态</p>
+                              <p className="text-xs font-bold text-emerald-600">{selectedReg.status}</p>
+                            </div>
+                            <div className="p-3 bg-[#F5F5F2] rounded-2xl">
+                              <p className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest mb-1">发布机关</p>
+                              <p className="text-xs font-bold">{selectedReg.issuing_authority || '官方发布'}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex-1 p-8 overflow-y-auto max-h-[500px] space-y-4">
+                          {selectedReg.articles && selectedReg.articles.length > 0 ? (
+                            selectedReg.articles.map((art: any, idx: number) => (
+                              <div key={idx} className="p-5 bg-[#F5F5F2] rounded-2xl border border-[#D9D5CC]/30">
+                                <div className="flex justify-between items-center mb-3">
+                                  <span className="text-[10px] font-bold text-[#6B6A4C] uppercase tracking-widest">
+                                    {art.article_number || `条文 ${idx + 1}`}
+                                  </span>
+                                  {art.chapter_title && (
+                                    <span className="text-[10px] text-[#8C877C] font-medium italic">
+                                      {art.chapter_title}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-[#1A1A1A]/80 leading-relaxed">{art.article_text}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-20">
+                              <p className="text-sm text-[#8C877C]">暂无结构化条文内容</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-[32px] border border-[#1A1A1A]/5 shadow-sm min-h-[600px] flex flex-col items-center justify-center text-center p-12">
+                        <div className="w-20 h-20 bg-[#F5F5F2] rounded-full flex items-center justify-center text-[#D9D5CC] mb-6">
+                          <Database size={40} />
+                        </div>
+                        <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">请选择法规</h3>
+                        <p className="text-sm text-[#8C877C] mt-2 max-w-xs">从左侧列表中选择一个法规文件以查看其详细信息和结构化条文内容。</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePage === 'official_collection_engine' && (
+              <motion.div 
+                key="official_collection_engine"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-5xl mx-auto space-y-6"
+              >
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <h2 className="font-serif text-3xl font-bold text-[#1A1A1A]">官方采集引擎</h2>
+                    <p className="text-sm text-[#8C877C] mt-1">自动巡检官方数据源，采集并解析最新法规条文</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => fetchLogs()}
+                      className="p-3 bg-white border border-[#D9D5CC] rounded-2xl text-[#1A1A1A] hover:bg-[#F5F5F2] transition-all"
+                    >
+                      <Activity size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="col-span-1 space-y-6">
+                    <div className="bg-[#1A1A1A] p-6 rounded-[32px] text-white shadow-xl">
+                      <h4 className="text-xs font-bold uppercase tracking-widest opacity-60 mb-4">快速采集任务</h4>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest opacity-40">目标网址 URL</label>
+                          <input 
+                            type="text" 
+                            placeholder="输入法规详情页网址..."
+                            className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm outline-none focus:border-white/30"
+                          />
+                        </div>
+                        <button 
+                          onClick={() => handleRunCollection(1)}
+                          disabled={crawlLoading}
+                          className="w-full py-3 bg-[#6B6A4C] text-white rounded-2xl text-sm font-bold hover:bg-[#5A593F] transition-all flex items-center justify-center gap-2"
+                        >
+                          {crawlLoading ? <Loader2 size={18} className="animate-spin" /> : <Cpu size={18} />}
+                          立即执行采集
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-[32px] border border-[#1A1A1A]/5 shadow-sm">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-[#8C877C] mb-4">采集统计</h4>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-[#1A1A1A]/60">本周采集数</span>
+                          <span className="font-bold">12</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-[#1A1A1A]/60">解析成功率</span>
+                          <span className="font-bold text-emerald-600">98.5%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-[#1A1A1A]/60">待处理异常</span>
+                          <span className="font-bold text-amber-600">2</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-span-2">
+                    <div className="bg-white rounded-[32px] border border-[#1A1A1A]/5 shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-[#D9D5CC]/30 flex justify-between items-center">
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-[#8C877C]">最近采集日志</h4>
+                        <span className="text-[10px] text-[#8C877C]">显示最近 50 条记录</span>
+                      </div>
+                      <div className="max-h-[500px] overflow-y-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-[#F5F5F2] text-[10px] font-bold uppercase tracking-widest text-[#8C877C]">
+                            <tr>
+                              <th className="px-6 py-4">来源</th>
+                              <th className="px-6 py-4">状态</th>
+                              <th className="px-6 py-4">发现条文</th>
+                              <th className="px-6 py-4">耗时</th>
+                              <th className="px-6 py-4">时间</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#1A1A1A]/5">
+                            {collectionLogs.map((log) => (
+                              <tr key={log.id} className="hover:bg-[#F5F5F2]/50 transition-colors">
+                                <td className="px-6 py-4 font-medium">{log.source_name}</td>
+                                <td className="px-6 py-4">
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                                    log.task_status === 'success' ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                                  )}>
+                                    {log.task_status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 font-mono">{log.items_found}</td>
+                                <td className="px-6 py-4 text-[#8C877C]">1.2s</td>
+                                <td className="px-6 py-4 text-[#8C877C] text-xs">
+                                  {new Date(log.started_at).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activePage === 'source_management' && (
+              <motion.div 
+                key="source_management"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-5xl mx-auto space-y-6"
+              >
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <h2 className="font-serif text-3xl font-bold text-[#1A1A1A]">法规源管理</h2>
+                    <p className="text-sm text-[#8C877C] mt-1">配置官方数据来源、采集规则与同步频率</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowSourceModal(true)}
+                    className="px-6 py-3 bg-[#1A1A1A] text-white rounded-2xl text-sm font-bold hover:bg-black transition-all flex items-center gap-2"
+                  >
+                    <Plus size={18} />
+                    添加法规源
+                  </button>
+                </div>
+
+                <div className="grid gap-4">
+                  {sources.map((source) => (
+                    <div key={source.id} className="bg-white p-6 rounded-[28px] border border-[#1A1A1A]/5 shadow-sm flex justify-between items-center group hover:border-[#6B6A4C]/30 transition-all">
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-[#F5F5F2] rounded-2xl flex items-center justify-center text-[#6B6A4C]">
+                          <Building2 size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h4 className="font-bold text-[#1A1A1A]">{source.source_name}</h4>
+                            <span className="px-2 py-0.5 bg-[#6B6A4C]/10 text-[#6B6A4C] text-[10px] font-bold rounded uppercase">
+                              {source.discipline}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 text-[10px] text-[#8C877C] uppercase tracking-widest font-bold">
+                            <span>{source.official_domain}</span>
+                            <span>•</span>
+                            <span>{source.country_region}</span>
+                            <span>•</span>
+                            <span>{source.update_frequency}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right mr-4">
+                          <p className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest mb-1">最后巡检</p>
+                          <p className="text-xs font-medium">{source.last_checked_at ? new Date(source.last_checked_at).toLocaleDateString() : '从未巡检'}</p>
+                        </div>
+                        <button className="p-3 bg-[#F5F5F2] rounded-xl text-[#1A1A1A]/40 hover:bg-[#1A1A1A] hover:text-white transition-all">
+                          <Settings size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {showSourceModal && (
+                  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden"
+                    >
+                      <div className="p-8 border-b border-[#D9D5CC]/30 flex justify-between items-center">
+                        <h3 className="font-serif text-2xl font-bold">新增法规源</h3>
+                        <button onClick={() => setShowSourceModal(false)} className="p-2 hover:bg-[#F5F5F2] rounded-full transition-all">
+                          <X size={20} />
+                        </button>
+                      </div>
+                      <div className="p-8 space-y-6">
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C]">来源名称</label>
+                            <input 
+                              type="text" 
+                              value={newSource.source_name}
+                              onChange={(e) => setNewSource({...newSource, source_name: e.target.value})}
+                              className="w-full px-4 py-3 bg-[#F5F5F2] border border-[#D9D5CC]/50 rounded-2xl text-sm outline-none focus:border-[#6B6A4C]"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C]">官方域名</label>
+                            <input 
+                              type="text" 
+                              value={newSource.official_domain}
+                              onChange={(e) => setNewSource({...newSource, official_domain: e.target.value})}
+                              className="w-full px-4 py-3 bg-[#F5F5F2] border border-[#D9D5CC]/50 rounded-2xl text-sm outline-none focus:border-[#6B6A4C]"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C]">国家/地区</label>
+                            <select 
+                              value={newSource.country_region}
+                              onChange={(e) => setNewSource({...newSource, country_region: e.target.value})}
+                              className="w-full px-4 py-3 bg-[#F5F5F2] border border-[#D9D5CC]/50 rounded-2xl text-sm outline-none focus:border-[#6B6A4C]"
+                            >
+                              <option>中国大陆</option>
+                              <option>中国香港</option>
+                              <option>中国澳门</option>
+                              <option>中国台湾</option>
+                              <option>国际通用</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C]">专业分类</label>
+                            <select 
+                              value={newSource.discipline}
+                              onChange={(e) => setNewSource({...newSource, discipline: e.target.value})}
+                              className="w-full px-4 py-3 bg-[#F5F5F2] border border-[#D9D5CC]/50 rounded-2xl text-sm outline-none focus:border-[#6B6A4C]"
+                            >
+                              <option>综合</option>
+                              <option>建筑</option>
+                              <option>结构</option>
+                              <option>消防</option>
+                              <option>给排水</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-8 bg-[#F5F5F2] flex justify-end gap-4">
+                        <button onClick={() => setShowSourceModal(false)} className="px-6 py-2 text-sm font-bold text-[#8C877C]">取消</button>
+                        <button 
+                          onClick={handleAddSource}
+                          className="px-8 py-2 bg-[#1A1A1A] text-white rounded-full text-sm font-bold hover:bg-black transition-all"
+                        >
+                          保存来源
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
                 )}
               </motion.div>
             )}
 
-            {activeTab === 'library' && (
+            {activePage === 'review_history' && (
               <motion.div 
-                key="library"
+                key="review_history"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-4xl mx-auto space-y-6"
+              >
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <h2 className="font-serif text-3xl font-bold text-[#1A1A1A]">审查历史档案</h2>
+                    <p className="text-sm text-[#8C877C] mt-1">记录所有已完成的智能审查任务与合规性报告</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-serif font-bold text-[#6B6A4C]">{history.length}</p>
+                    <p className="text-[10px] font-bold uppercase text-[#8C877C] tracking-widest">Total Records</p>
+                  </div>
+                </div>
+
+                {history.length === 0 ? (
+                  <div className="text-center py-32 bg-white rounded-[32px] border-2 border-dashed border-[#D9D5CC] flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-[#F5F5F2] rounded-full flex items-center justify-center text-[#D9D5CC] mb-4">
+                      <History size={32} />
+                    </div>
+                    <p className="text-[#8C877C] font-medium">暂无历史审查记录</p>
+                    <button 
+                      onClick={() => {
+                        setActiveCategory('inspection_center');
+                        setActivePage('code_review');
+                      }}
+                      className="mt-6 px-8 py-2.5 bg-[#1A1A1A] text-white rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                    >
+                      开始首次审查
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {history.map((item, i) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="bg-white p-6 rounded-[28px] border border-[#1A1A1A]/5 hover:border-[#6B6A4C]/30 transition-all group shadow-sm hover:shadow-md"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-[#6B6A4C]/5 rounded-2xl flex items-center justify-center text-[#6B6A4C] group-hover:bg-[#6B6A4C] group-hover:text-white transition-colors">
+                              <FileText size={22} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-3 mb-1">
+                                <span className="px-2 py-0.5 bg-[#6B6A4C]/10 text-[#6B6A4C] text-[10px] font-bold rounded uppercase tracking-wider">
+                                  {item.result.mode}
+                                </span>
+                                <span className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest">
+                                  {new Date(item.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                              <h3 className="font-bold text-[#1A1A1A] line-clamp-1 group-hover:text-[#6B6A4C] transition-colors">
+                                {item.input}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => { 
+                                setResult(item.result); 
+                                setActiveCategory('inspection_center');
+                                setActivePage('review_report'); 
+                              }}
+                              className="p-2.5 bg-[#F5F5F2] hover:bg-[#6B6A4C] hover:text-white text-[#1A1A1A]/40 rounded-xl transition-all"
+                              title="查看完整报告"
+                            >
+                              <Maximize2 size={18} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setResult(item.result);
+                                // We switch to report page briefly to trigger export, or we could implement a silent export
+                                setActiveCategory('inspection_center');
+                                setActivePage('review_report');
+                                setTimeout(() => handleExportPDF(), 500);
+                              }}
+                              className="p-2.5 bg-[#F5F5F2] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A]/40 rounded-xl transition-all"
+                              title="导出 PDF"
+                            >
+                              <Download size={18} />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="pl-16">
+                          <div className="p-4 bg-[#F5F5F2] rounded-2xl border border-[#D9D5CC]/30">
+                            <p className="text-[10px] font-bold text-[#8C877C] uppercase tracking-widest mb-2">报告摘要 · Summary</p>
+                            <p className="text-xs text-[#1A1A1A]/70 leading-relaxed line-clamp-2 italic">
+                              "{getSummary(item.result)}"
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activePage === 'drawing_library' && (
+              <motion.div 
+                key="drawing_library"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -1172,129 +2514,182 @@ export default function App() {
                   </div>
                 </div>
 
-                {imageHistory.length === 0 ? (
-                  <div className="text-center py-40 bg-[#FCFBF8] rounded-[32px] border-2 border-dashed border-[#D9D5CC]">
-                    <div className="w-20 h-20 bg-[#F1EFEB] rounded-full flex items-center justify-center mx-auto mb-6 text-[#AAA396]">
-                      <ImageIcon size={40} />
+                <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-10">
+                  {/* Tag Sidebar */}
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C] mb-4">自动分类标签</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <button 
+                          onClick={() => setSelectedLibraryTag(null)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
+                            selectedLibraryTag === null ? "bg-[#6B6A4C] text-white shadow-md" : "bg-[#F1EFEB] text-[#8C877C] hover:bg-[#D9D5CC]"
+                          )}
+                        >
+                          全部图像
+                        </button>
+                        {Array.from(new Set(imageHistory.flatMap(item => item.selectedTags || []))).map(tag => (
+                          <button 
+                            key={tag}
+                            onClick={() => setSelectedLibraryTag(tag === selectedLibraryTag ? null : tag)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
+                              selectedLibraryTag === tag ? "bg-[#6B6A4C] text-white shadow-md" : "bg-[#F1EFEB] text-[#8C877C] hover:bg-[#D9D5CC]"
+                            )}
+                          >
+                            #{tag}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-[#8C877C] font-medium">暂无生成的图像记录</p>
-                    <button 
-                      onClick={() => setActiveTab('image_generation')}
-                      className="mt-6 px-8 py-3 bg-[#6B6A4C] text-white rounded-full text-sm font-bold shadow-lg shadow-[#6B6A4C]/20 hover:scale-105 transition-transform"
-                    >
-                      去生成第一张图像 →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {imageHistory
-                      .filter(item => 
-                        item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        (item.outputType || '').toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      .map((item, idx) => (
-                      <motion.div 
-                        key={idx}
-                        layoutId={`img-${item.timestamp}`}
-                        className="bg-[#FCFBF8] rounded-[28px] border border-[#D9D5CC]/30 overflow-hidden shadow-soft hover:shadow-xl transition-all group"
-                        draggable="true"
-                        onDragStart={(e: any) => {
-                          e.dataTransfer.setData("text/plain", item.img);
-                          e.dataTransfer.effectAllowed = "copy";
-                        }}
-                      >
-                        <div className="relative aspect-[4/5] overflow-hidden bg-[#F1EFEB] cursor-pointer" onClick={() => setPreviewImage(item.img)}>
-                          <img 
-                            src={item.img} 
-                            alt={item.prompt} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setPreviewImage(item.img); }}
-                              className="p-4 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-xl"
-                            >
-                              <Maximize2 size={24} />
-                            </button>
-                            <a 
-                              href={item.img} 
-                              download={`kndi-asset-${item.timestamp}.png`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-4 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-xl"
-                            >
-                              <Download size={24} />
-                            </a>
-                          </div>
-                          <div className="absolute top-5 left-5 flex gap-2">
-                            <span className="px-3 py-1.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
-                              {item.aspectRatio}
-                            </span>
-                            <span className="px-3 py-1.5 bg-[#6B6A4C]/80 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
-                              {item.outputType === 'render' ? '效果图' : item.outputType === 'drawing' ? '图纸' : item.outputType === 'analysis' ? '分析图' : '概念图'}
-                            </span>
-                          </div>
+                    
+                    <div className="p-5 bg-[#F5F5F2] rounded-[24px] border border-[#D9D5CC]/30">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#8C877C] mb-3">库统计</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-[#AAA396]">效果图</span>
+                          <span className="font-bold">{imageHistory.filter(i => i.outputType === 'render').length}</span>
                         </div>
-                        <div className="p-6 space-y-4">
-                          <div className="flex justify-between items-start">
-                            <span className="text-[10px] font-bold text-[#AAA396] uppercase tracking-widest">
-                              {new Date(item.timestamp).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-xs font-medium text-[#4A463D] line-clamp-2 leading-relaxed">
-                            {item.prompt}
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {item.selectedTags?.slice(0, 3).map((tag: string) => (
-                              <span key={tag} className="px-2 py-1 bg-[#F1EFEB] text-[#8C877C] text-[8px] font-bold rounded-full">
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                          <div className="pt-2 flex gap-3">
-                            <button 
-                              onClick={() => handleAnalyzeDrawing(item.img)}
-                              className="flex-1 py-2.5 bg-[#F1EFEB] hover:bg-[#6B6A4C] hover:text-white text-[#6B6A4C] rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
-                            >
-                              AI 智能分析
-                            </button>
-                          </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-[#AAA396]">图纸</span>
+                          <span className="font-bold">{imageHistory.filter(i => i.outputType === 'drawing').length}</span>
                         </div>
-                      </motion.div>
-                    ))}
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-[#AAA396]">分析图</span>
+                          <span className="font-bold">{imageHistory.filter(i => i.outputType === 'analysis').length}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
+
+                  {/* Main Grid */}
+                  <div className="space-y-6">
+                    {imageHistory.length === 0 ? (
+                      <div className="text-center py-40 bg-[#FCFBF8] rounded-[32px] border-2 border-dashed border-[#D9D5CC]">
+                        <div className="w-20 h-20 bg-[#F1EFEB] rounded-full flex items-center justify-center mx-auto mb-6 text-[#AAA396]">
+                          <ImageIcon size={40} />
+                        </div>
+                        <p className="text-[#8C877C] font-medium">暂无生成的图像记录</p>
+                        <button 
+                          onClick={() => {
+                            setActiveCategory('creation_workshop');
+                            setActivePage('creation_workshop');
+                          }}
+                          className="mt-6 px-8 py-3 bg-[#6B6A4C] text-white rounded-full text-sm font-bold shadow-lg shadow-[#6B6A4C]/20 hover:scale-105 transition-transform"
+                        >
+                          去生成第一张图像 →
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                        {imageHistory
+                          .filter(item => {
+                            const matchesSearch = item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                               (item.outputType || '').toLowerCase().includes(searchQuery.toLowerCase());
+                            const matchesTag = !selectedLibraryTag || (item.selectedTags || []).includes(selectedLibraryTag);
+                            return matchesSearch && matchesTag;
+                          })
+                          .map((item, idx) => (
+                          <motion.div 
+                            key={idx}
+                            layoutId={`img-${item.timestamp}`}
+                            className="bg-[#FCFBF8] rounded-[28px] border border-[#D9D5CC]/30 overflow-hidden shadow-soft hover:shadow-xl transition-all group"
+                          >
+                            <div className="relative aspect-[4/5] overflow-hidden bg-[#F1EFEB] cursor-pointer" onClick={() => setPreviewImage(item.img)}>
+                              <img 
+                                src={item.img} 
+                                alt={item.prompt} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setPreviewImage(item.img); }}
+                                  className="p-4 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-xl"
+                                >
+                                  <Maximize2 size={24} />
+                                </button>
+                                <a 
+                                  href={item.img} 
+                                  download={`kndi-asset-${item.timestamp}.png`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-4 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-xl"
+                                >
+                                  <Download size={24} />
+                                </a>
+                              </div>
+                              <div className="absolute top-5 left-5 flex gap-2">
+                                <span className="px-3 py-1.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
+                                  {item.aspectRatio}
+                                </span>
+                                <span className="px-3 py-1.5 bg-[#6B6A4C]/80 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
+                                  {item.outputType === 'render' ? '效果图' : item.outputType === 'drawing' ? '图纸' : item.outputType === 'analysis' ? '分析图' : '概念图'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="p-6 space-y-4">
+                              <div className="flex justify-between items-start">
+                                <span className="text-[10px] font-bold text-[#AAA396] uppercase tracking-widest">
+                                  {new Date(item.timestamp).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-xs font-medium text-[#4A463D] line-clamp-2 leading-relaxed">
+                                {item.prompt}
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.selectedTags?.slice(0, 3).map((tag: string) => (
+                                  <span key={tag} className="px-2 py-1 bg-[#F1EFEB] text-[#8C877C] text-[8px] font-bold rounded-full">
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="pt-2 flex gap-3">
+                                <button 
+                                  onClick={() => handleAnalyzeDrawing(item.img)}
+                                  className="flex-1 py-2.5 bg-[#F1EFEB] hover:bg-[#6B6A4C] hover:text-white text-[#6B6A4C] rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
+                                >
+                                  AI 智能分析
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
 
-            {activeTab === 'image_generation' && (
+            {activePage === 'creation_workshop' && (
               <motion.div 
-                key="image_generation"
+                key="creation_workshop"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 className="max-w-[1120px] mx-auto"
               >
-                <div className="bg-[#FCFBF8] rounded-[32px] shadow-soft border border-[#D9D5CC]/30 overflow-hidden">
+                <div className="bg-white rounded-[32px] shadow-soft border border-[#D9D5CC]/30 overflow-hidden">
                   {/* Card Header */}
                   <div className="px-8 py-6 border-b border-[#D9D5CC]/30 flex items-center justify-between bg-white/50 backdrop-blur-sm">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#6B6A4C]/10 rounded-2xl flex items-center justify-center text-[#6B6A4C]">
+                      <div className="w-12 h-12 bg-[#1A1A1A]/5 rounded-2xl flex items-center justify-center text-[#1A1A1A]">
                         <Sparkles size={24} />
                       </div>
                       <div>
-                        <h2 className="font-serif text-xl font-bold text-[#222222]">图像生成工作台</h2>
+                        <h2 className="font-serif text-xl font-bold text-[#1A1A1A]">图像生成工作台</h2>
                         <p className="text-[10px] text-[#8C877C] uppercase tracking-widest font-bold">Architectural Intelligence Generation</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-[#F1EFEB] p-1 rounded-full">
+                    <div className="flex items-center gap-2 bg-[#F5F5F2] p-1 rounded-full">
                       {["1:1", "16:9", "9:16", "4:3", "3:4"].map((ratio) => (
                         <button
                           key={ratio}
                           onClick={() => setAspectRatio(ratio)}
                           className={cn(
                             "px-4 py-1.5 rounded-full text-[10px] font-bold transition-all whitespace-nowrap",
-                            aspectRatio === ratio ? "bg-[#6B6A4C] text-white shadow-sm" : "text-[#8C877C] hover:text-[#222222]"
+                            aspectRatio === ratio ? "bg-[#1A1A1A] text-white shadow-sm" : "text-[#8C877C] hover:text-[#1A1A1A]"
                           )}
                         >
                           {ratio}
@@ -1312,7 +2707,7 @@ export default function App() {
                         <div className="flex items-center justify-between">
                           <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">STEP 1: 选择输出类型</h3>
                         </div>
-                        <div className="flex gap-1.5 bg-[#F1EFEB] p-1 rounded-full w-fit">
+                        <div className="flex gap-1.5 bg-[#F5F5F2] p-1 rounded-full w-fit">
                           {[
                             { label: "效果图渲染", value: "render" },
                             { label: "图纸生成", value: "drawing" },
@@ -1321,10 +2716,12 @@ export default function App() {
                           ].map((type) => (
                             <button
                               key={type.value}
-                              onClick={() => setOutputType(type.value as any)}
+                              onClick={() => {
+                                setOutputType(type.value as any);
+                              }}
                               className={cn(
                                 "px-5 py-2 rounded-full text-[11px] font-bold transition-all",
-                                outputType === type.value ? "bg-[#6B6A4C] text-white shadow-md" : "text-[#4A463D] hover:bg-black/5"
+                                outputType === type.value ? "bg-[#1A1A1A] text-white shadow-md" : "text-[#1A1A1A]/60 hover:bg-black/5"
                               )}
                             >
                               {type.label}
@@ -1333,20 +2730,142 @@ export default function App() {
                         </div>
                       </section>
 
-                      {/* Step 2: Prompt */}
-                      <section className="space-y-3">
-                        <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">STEP 2: 输入生成描述</h3>
-                        <textarea 
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                          placeholder={
-                            outputType === 'render' ? "输入您的效果图需求...（例如：现代主义风格的湖边别墅，黄昏光影，大面积落地窗，混凝土与木材材质，电影感构图，高端建筑摄影）" :
-                            outputType === 'drawing' ? "输入您的图纸生成需求...（例如：生成一层平面图，包含客厅、餐厅、厨房、主卧、两间次卧、两卫，现代简洁布局，黑白 CAD 风格）" :
-                            outputType === 'analysis' ? "输入您的分析图需求...（例如：生成商业综合体首层功能分析图，区分主入口、交通流线、公共空间、店铺分区，使用清晰的建筑分析表达方式）" :
-                            "输入您的概念图需求...（例如：生成一个滨水文化中心的概念草图，体块轻盈漂浮，具有公共平台与大屋顶，强调未来感与地域性融合）"
+                      {/* Step 2: Prompt & Reference Images */}
+                      <section 
+                        className={cn(
+                          "space-y-4 p-6 rounded-[28px] transition-all border-2 border-transparent",
+                          dragOverIdx === -1 ? "bg-[#6B6A4C]/5 border-[#6B6A4C] scale-[1.01]" : "bg-[#F5F5F2]"
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverIdx(-1);
+                        }}
+                        onDragLeave={() => setDragOverIdx(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverIdx(null);
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && file.type.startsWith('image/')) {
+                            // Find first empty slot or overwrite first
+                            const firstEmpty = [0, 1, 2, 3].find(i => !referenceImages[i]) ?? 0;
+                            handleReferenceDrop(file, firstEmpty);
                           }
-                          className="w-full h-32 bg-[#F1EFEB] rounded-[20px] p-5 text-sm font-medium outline-none border-none resize-none focus:ring-2 focus:ring-[#6B6A4C]/20"
-                        />
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">STEP 2: 输入生成描述与参考图</h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-[#AAA396]">{referenceImages.filter(Boolean).length}/4 参考图</span>
+                            <button 
+                              onClick={() => renderInputRef.current?.click()}
+                              className="p-1.5 bg-white rounded-full text-[#6B6A4C] hover:bg-[#6B6A4C] hover:text-white transition-all shadow-sm"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="relative group">
+                          <textarea 
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder={
+                              outputType === 'render' ? "输入您的效果图需求...（例如：现代主义风格的湖边别墅，黄昏光影，大面积落地窗，混凝土与木材材质，电影感构图，高端建筑摄影）" :
+                              outputType === 'drawing' ? "输入您的图纸生成需求...（例如：生成一层平面图，包含客厅、餐厅、厨房、主卧、两间次卧、两卫，现代简洁布局，黑白 CAD 风格）" :
+                              outputType === 'analysis' ? "输入您的分析图需求...（例如：生成商业综合体首层功能分析图，区分主入口、交通流线、公共空间、店铺分区，使用清晰的建筑分析表达方式）" :
+                              "输入您的概念图需求...（例如：生成一个滨水文化中心的概念草图，体块轻盈漂浮，具有公共平台与大屋顶，强调未来感与地域性融合）"
+                            }
+                            className="w-full h-32 bg-white/50 rounded-[20px] p-5 text-sm font-medium outline-none border-none resize-none focus:ring-2 focus:ring-[#6B6A4C]/20 transition-all pr-12"
+                          />
+                          <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                            <button
+                              onClick={handleOptimizePrompt}
+                              disabled={!input || isOptimizing}
+                              className="p-2 bg-white/80 backdrop-blur-sm rounded-xl text-[#6B6A4C] hover:bg-[#6B6A4C] hover:text-white transition-all shadow-sm disabled:opacity-50 group/opt"
+                              title="AI 自动优化提示词"
+                            >
+                              {isOptimizing ? (
+                                <Loader2 size={16} className="animate-spin" />
+                              ) : (
+                                <Sparkles size={16} className="group-hover/opt:scale-110 transition-transform" />
+                              )}
+                            </button>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <p className="text-[10px] text-[#AAA396] font-bold">支持拖拽图片作为参考</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Reference Images Grid inside Step 2 */}
+                        <div className="grid grid-cols-4 gap-3">
+                          {[0, 1, 2, 3].map((idx) => (
+                            <div 
+                              key={idx}
+                              className={cn(
+                                "aspect-square rounded-[18px] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden group relative",
+                                referenceImages[idx] ? "border-[#6B6A4C] bg-white shadow-sm" : "border-[#D8D3C8] bg-white/30 hover:bg-white/50",
+                                dragOverIdx === idx && "border-[#6B6A4C] bg-[#6B6A4C]/5 scale-[1.02]"
+                              )}
+                              onClick={() => {
+                                if (!referenceImages[idx]) {
+                                  renderInputRef.current?.click();
+                                  (renderInputRef.current as any).targetIdx = idx;
+                                }
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDragOverIdx(idx);
+                              }}
+                              onDragLeave={() => setDragOverIdx(null)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDragOverIdx(null);
+                                const file = e.dataTransfer.files?.[0];
+                                if (file && file.type.startsWith('image/')) {
+                                  handleReferenceDrop(file, idx);
+                                }
+                              }}
+                            >
+                              {referenceImages[idx] ? (
+                                <>
+                                  <img src={referenceImages[idx].preview} className="w-full h-full object-cover" alt={`ref-${idx}`} />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 gap-2">
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setReferenceImages(prev => prev.filter((_, i) => i !== idx)); }}
+                                      className="p-1.5 bg-red-500 text-white rounded-full hover:scale-110 transition-transform"
+                                    >
+                                      <X size={10} />
+                                    </button>
+                                  </div>
+                                  <div className="absolute bottom-1 left-1 right-1 bg-white/90 backdrop-blur-sm rounded-lg p-1">
+                                    <div className="flex justify-between text-[7px] font-bold text-[#6B6A4C] mb-0.5 px-1">
+                                      <span>权重</span>
+                                      <span>{referenceImages[idx].weight}</span>
+                                    </div>
+                                    <input 
+                                      type="range" 
+                                      min="0" max="1" step="0.1" 
+                                      value={referenceImages[idx].weight}
+                                      onChange={(e) => {
+                                        const newRefs = [...referenceImages];
+                                        newRefs[idx].weight = parseFloat(e.target.value);
+                                        setReferenceImages(newRefs);
+                                      }}
+                                      className="w-full h-1 bg-[#D9D5CC] rounded-full appearance-none accent-[#6B6A4C]"
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1">
+                                  <ImageIcon size={14} className="text-[#AAA396]" />
+                                  <span className="text-[8px] font-bold text-[#AAA396]">参考图 {idx + 1}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </section>
 
                       {/* Step 3: Style Selector */}
@@ -1486,87 +3005,126 @@ export default function App() {
 
                     {/* Right Column */}
                     <div className="space-y-6">
-                      {/* Step 5: Multi-Reference Upload */}
-                      <section className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">STEP 5: 上传参考图</h3>
-                          <span className="text-[10px] font-bold text-[#AAA396]">{referenceImages.length}/4</span>
+                      {/* Generation Preview Window */}
+                      <section className="bg-white rounded-[24px] border border-[#D9D5CC]/30 overflow-hidden shadow-soft flex flex-col h-full min-h-[400px]">
+                        <div className="px-5 py-4 border-b border-[#D9D5CC]/30 bg-[#F8F6F1] flex items-center justify-between">
+                          <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">实时生成预览</h3>
+                          {generatedImages.length > 0 && (
+                            <span className="text-[9px] font-bold text-[#6B6A4C] bg-[#6B6A4C]/10 px-2 py-0.5 rounded-full">
+                              已生成 {generatedImages.length} 张
+                            </span>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {[0, 1, 2, 3].map((idx) => (
-                            <div 
-                              key={idx}
-                              className={cn(
-                                "aspect-square rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden group relative",
-                                referenceImages[idx] ? "border-[#6B6A4C] bg-white shadow-sm" : "border-[#D8D3C8] bg-[#FBFAF7] hover:bg-[#F1EFEB]",
-                                dragOverIdx === idx && "border-[#6B6A4C] bg-[#6B6A4C]/5 scale-[1.02]"
-                              )}
-                              onClick={() => {
-                                if (!referenceImages[idx]) {
-                                  renderInputRef.current?.click();
-                                  (renderInputRef.current as any).targetIdx = idx;
-                                }
-                              }}
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                setDragOverIdx(idx);
-                              }}
-                              onDragLeave={() => setDragOverIdx(null)}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                setDragOverIdx(null);
-                                const file = e.dataTransfer.files?.[0];
-                                if (file && file.type.startsWith('image/')) {
-                                  handleReferenceDrop(file, idx);
-                                }
-                              }}
-                            >
-                              {referenceImages[idx] ? (
-                                <>
-                                  <img src={referenceImages[idx].preview} className="w-full h-full object-cover" alt={`ref-${idx}`} />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 gap-2">
-                                    <p className="text-white text-[10px] font-bold">Ref {idx + 1}</p>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setReferenceImages(prev => prev.filter((_, i) => i !== idx)); }}
-                                      className="p-1.5 bg-red-500 text-white rounded-full"
-                                    >
-                                      <X size={10} />
-                                    </button>
-                                  </div>
-                                  <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-white/90 backdrop-blur-sm rounded-xl p-1.5">
-                                    <div className="flex justify-between text-[8px] font-bold text-[#6B6A4C] mb-1 px-1">
-                                      <span>权重</span>
-                                      <span>{referenceImages[idx].weight}</span>
-                                    </div>
-                                    <input 
-                                      type="range" 
-                                      min="0" max="1" step="0.1" 
-                                      value={referenceImages[idx].weight}
-                                      onChange={(e) => {
-                                        const newRefs = [...referenceImages];
-                                        newRefs[idx].weight = parseFloat(e.target.value);
-                                        setReferenceImages(newRefs);
-                                      }}
-                                      className="w-full h-1 bg-[#D9D5CC] rounded-full appearance-none accent-[#6B6A4C]"
-                                    />
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <Plus size={18} className="text-[#AAA396] mb-1" />
-                                  <span className="text-[10px] font-bold text-[#AAA396]">参考图 {idx + 1}</span>
-                                </>
-                              )}
+                        <div className="flex-1 p-4 flex items-center justify-center bg-[#F1EFEB]/30 relative group">
+                          {imageLoading ? (
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="w-12 h-12 border-4 border-[#6B6A4C]/20 border-t-[#6B6A4C] rounded-full animate-spin" />
+                              <p className="text-[10px] font-bold text-[#6B6A4C] animate-pulse">{generationStatus || "AI 正在构思中..."}</p>
                             </div>
-                          ))}
+                          ) : generatedImages.length > 0 ? (
+                            <div className="relative w-full h-full flex items-center justify-center">
+                              <img 
+                                src={generatedImages[generatedImages.length - 1]} 
+                                alt="Latest Result" 
+                                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                                referrerPolicy="no-referrer"
+                              />
+                              
+                              {/* Annotation Overlay */}
+                              {annotations.length > 0 && outputType === 'drawing' && (
+                                <AnnotationOverlay annotations={annotations} />
+                              )}
+
+                              {/* Annotation Input Modal */}
+                              <AnimatePresence>
+                                {showAnnotationInput && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/20 backdrop-blur-sm"
+                                  >
+                                    <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 space-y-4 border border-[#D9D5CC]/30">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-[#6B6A4C]">
+                                          <Sparkles size={16} />
+                                          <h4 className="text-xs font-bold uppercase tracking-widest">AI 辅助标注</h4>
+                                        </div>
+                                        <button onClick={() => setShowAnnotationInput(false)} className="text-[#AAA396] hover:text-[#1A1A1A]">
+                                          <X size={16} />
+                                        </button>
+                                      </div>
+                                      <p className="text-[10px] text-[#8C877C] leading-relaxed">
+                                        请输入您想要标注的构件描述（如：标注所有承重墙和楼梯），AI 将尝试自动识别并添加规范标注。
+                                      </p>
+                                      <textarea 
+                                        value={annotationPrompt}
+                                        onChange={(e) => setAnnotationPrompt(e.target.value)}
+                                        placeholder="例如：标注承重墙、电梯井和楼梯..."
+                                        className="w-full h-24 bg-[#F5F5F2] rounded-2xl p-4 text-xs font-medium outline-none border border-transparent focus:border-[#6B6A4C]/30 resize-none"
+                                      />
+                                      <button 
+                                        onClick={handleAiAnnotate}
+                                        disabled={!annotationPrompt.trim() || isAnnotating}
+                                        className="w-full py-3 bg-[#1A1A1A] text-white rounded-2xl text-xs font-bold hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                      >
+                                        {isAnnotating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                                        {isAnnotating ? "正在识别标注..." : "开始标注"}
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <button 
+                                  onClick={() => setPreviewImage(generatedImages[generatedImages.length - 1])}
+                                  className="p-3 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-lg"
+                                  title="放大预览"
+                                >
+                                  <Maximize2 size={20} />
+                                </button>
+                                <button 
+                                  onClick={() => setRefiningIdx(generatedImages.length - 1)}
+                                  className="p-3 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-lg"
+                                  title="二次编辑"
+                                >
+                                  <Pencil size={20} />
+                                </button>
+                                {outputType === 'drawing' && (
+                                  <button 
+                                    onClick={() => setShowAnnotationInput(true)}
+                                    className="p-3 bg-white rounded-full text-[#6B6A4C] hover:scale-110 transition-transform shadow-lg"
+                                    title="AI 辅助标注"
+                                  >
+                                    <Sparkles size={20} />
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => setActivePage('drawing_library')}
+                                  className="p-3 bg-white rounded-full text-[#6B6A4C] hover:scale-110 transition-transform shadow-lg"
+                                  title="在图像库中查看"
+                                >
+                                  <Library size={20} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center space-y-3">
+                              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto text-[#D9D5CC]">
+                                <ImageIcon size={32} />
+                              </div>
+                              <p className="text-[10px] font-bold text-[#AAA396]">等待生成指令...</p>
+                            </div>
+                          )}
                         </div>
                       </section>
 
-                      {/* Step 6: Consistency Control */}
+                      {/* Step 3: Consistency Control (Moved up) */}
                       <section className="bg-[#F8F6F1] p-5 rounded-[24px] space-y-4 border border-[#D9D5CC]/30">
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">STEP 6: 一致性控制</h3>
+                            <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8C877C]">STEP 3: 一致性控制</h3>
                             <p className="text-[9px] text-[#AAA396]">保证多张图像视觉语言统一</p>
                           </div>
                           <button 
@@ -1672,52 +3230,119 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+              </motion.div>
+            )}
+            {activePage === 'model_config' && (
+              <motion.div
+                key="model_config"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-5xl mx-auto space-y-8"
+              >
+                <div className="flex flex-col space-y-2">
+                  <h2 className="text-2xl font-serif font-bold text-[#1A1A1A]">模型配置</h2>
+                  <p className="text-sm text-[#8C877C]">配置系统底层驱动引擎，选择最适合当前任务的 AI 模型</p>
+                </div>
 
-                {generatedImages.length > 0 && (
-                  <div className="mt-8 space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-px flex-1 bg-[#D9D5CC]" />
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8C877C]">生成成果展示</p>
-                      <div className="h-px flex-1 bg-[#D9D5CC]" />
-                    </div>
-                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-                      {generatedImages.map((img, idx) => (
-                        <motion.div 
-                          key={idx}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="break-inside-avoid rounded-[24px] overflow-hidden border border-[#D9D5CC]/30 shadow-soft bg-[#FCFBF8] p-2 group relative cursor-pointer"
-                          onClick={() => setPreviewImage(img)}
-                        >
-                          <img src={img} alt={`Result ${idx}`} className="w-full h-auto rounded-[18px]" referrerPolicy="no-referrer" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setPreviewImage(img); }}
-                              className="p-3 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-lg"
-                            >
-                              <Maximize2 size={18} />
-                            </button>
-                            <a 
-                              href={img} 
-                              download={`kndi-gen-${idx}.png`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-3 bg-white rounded-full text-[#111111] hover:scale-110 transition-transform shadow-lg"
-                            >
-                              <Download size={18} />
-                            </a>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                    { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', provider: 'Google', description: '最强大的多模态模型，适用于复杂建筑逻辑推理与合规审查。', icon: Cpu, color: 'blue' },
+                    { id: 'gemini-3.1-flash', name: 'Gemini 3.1 Flash', provider: 'Google', description: '极速响应，平衡性能与成本，适用于快速草图生成与简单问答。', icon: Zap, color: 'yellow' },
+                    { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: '全能型旗舰模型，具备卓越的自然语言理解与多模态交互能力。', icon: Brain, color: 'green' },
+                    { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', description: '极高的人文素养与代码能力，输出风格更接近人类设计师。', icon: MessageSquare, color: 'orange' },
+                    { id: 'deepseek-v3', name: 'DeepSeek-V3', provider: 'DeepSeek', description: '国产最强开源模型，在逻辑推理与数学计算方面表现优异。', icon: Code, color: 'purple' },
+                    { id: 'llama-3.1-405b', name: 'Llama 3.1 405B', provider: 'Meta', description: '顶级开源模型，具备极强的泛化能力与多语言支持。', icon: Globe, color: 'indigo' },
+                  ].map((model) => (
+                    <motion.div
+                      key={model.id}
+                      whileHover={{ y: -4 }}
+                      onClick={() => setSelectedModel(model.id)}
+                      className={cn(
+                        "p-6 rounded-[32px] border-2 transition-all cursor-pointer relative overflow-hidden group",
+                        selectedModel === model.id 
+                          ? "bg-white border-[#1A1A1A] shadow-xl" 
+                          : "bg-white/50 border-transparent hover:border-[#D9D5CC] hover:bg-white"
+                      )}
+                    >
+                      {selectedModel === model.id && (
+                        <div className="absolute top-4 right-4 text-[#1A1A1A]">
+                          <CheckCircle2 size={24} />
+                        </div>
+                      )}
+                      
+                      <div className="space-y-4">
+                        <div className={cn(
+                          "w-12 h-12 rounded-2xl flex items-center justify-center",
+                          selectedModel === model.id ? "bg-[#1A1A1A] text-white" : "bg-[#F5F5F2] text-[#AAA396]"
+                        )}>
+                          <model.icon size={24} />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-[#1A1A1A]">{model.name}</h3>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F5F5F2] text-[#8C877C] font-bold uppercase tracking-tighter">
+                              {model.provider}
+                            </span>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
+                          <p className="text-[11px] text-[#8C877C] leading-relaxed">
+                            {model.description}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between">
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <div key={star} className={cn("w-1.5 h-1.5 rounded-full", star <= (model.id.includes('pro') || model.id.includes('4o') || model.id.includes('sonnet') ? 5 : 4) ? "bg-[#6B6A4C]" : "bg-[#D9D5CC]")} />
+                            ))}
+                          </div>
+                          <span className="text-[9px] font-bold text-[#AAA396] uppercase tracking-widest">
+                            {selectedModel === model.id ? '当前启用' : '点击切换'}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="bg-[#1A1A1A] rounded-[32px] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold">混合专家系统 (MoE) 已就绪</h3>
+                    <p className="text-xs text-white/60 max-w-md">
+                      观象建筑 AI 支持多模型协同工作。您可以为不同的任务（如：合规审查用 Pro，快速草图用 Flash）配置特定的默认引擎。
+                    </p>
                   </div>
-                )}
+                  <button className="px-8 py-4 bg-white text-[#1A1A1A] rounded-2xl font-bold text-sm hover:bg-[#F5F5F2] transition-all flex items-center gap-2">
+                    <Settings size={18} />
+                    高级路由设置
+                  </button>
+                </div>
+              </motion.div>
+            )}
+            {/* Coming Soon Placeholder for other pages */}
+            {!['code_review', 'review_report', 'review_history', 'drawing_library', 'creation_workshop', 'model_config'].includes(activePage) && (
+              <motion.div
+                key="coming_soon"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-40 space-y-6"
+              >
+                <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center text-[#6B6A4C]/20">
+                  <Database size={40} />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-[#1A1A1A]">功能开发中</h3>
+                  <p className="text-sm text-[#8C877C] mt-1">
+                    {NAVIGATION.find(c => c.id === activeCategory)?.pages.find(p => p.id === activePage)?.name || NAVIGATION.find(c => c.id === activePage)?.name} 模块正在接入观象引擎...
+                  </p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* Input Bar */}
-        {activeTab === 'review' && (
+        {activePage === 'code_review' && (
           <div className="p-8 pt-0">
             <div className="max-w-4xl mx-auto mb-4">
               <AnimatePresence>
@@ -1733,7 +3358,7 @@ export default function App() {
                         {file.type.startsWith('image/') ? (
                           <img src={file.preview} alt="upload preview" className="w-16 h-16 object-cover rounded-xl border border-[#1A1A1A]/10" />
                         ) : (
-                          <div className="w-16 h-16 bg-[#F5F5F0] rounded-xl flex items-center justify-center text-[#5A5A40]">
+                          <div className="w-16 h-16 bg-[#F0F0ED] rounded-xl flex items-center justify-center text-[#6B6A4C]">
                             <FileText size={24} />
                           </div>
                         )}
@@ -1754,12 +3379,12 @@ export default function App() {
               onSubmit={handleSubmit}
               className="max-w-4xl mx-auto relative group"
             >
-              <div className="absolute inset-0 bg-[#5A5A40] blur-2xl opacity-0 group-focus-within:opacity-10 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-[#6B6A4C] blur-2xl opacity-0 group-focus-within:opacity-10 transition-opacity duration-500" />
               <div className="relative flex items-center bg-white rounded-3xl shadow-xl shadow-[#1A1A1A]/5 border border-[#1A1A1A]/5 overflow-hidden p-2">
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-4 text-[#5A5A40] hover:bg-[#5A5A40]/5 rounded-2xl transition-colors"
+                  className="p-4 text-[#1A1A1A]/60 hover:bg-[#1A1A1A]/5 rounded-2xl transition-colors"
                 >
                   <Plus size={20} />
                 </button>
@@ -1773,7 +3398,7 @@ export default function App() {
                 <button 
                   type="submit"
                   disabled={loading || !input.trim()}
-                  className="bg-[#5A5A40] text-white p-4 rounded-2xl hover:bg-[#4A4A30] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#1A1A1A] text-white p-4 rounded-2xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
                 </button>
@@ -1808,10 +3433,59 @@ export default function App() {
               <img
                 src={previewImage}
                 alt="Preview"
-                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-white/10"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute -bottom-12 left-0 right-0 flex justify-center gap-4">
+
+              {/* Refinement Input Window in Preview */}
+              <div className="mt-6 w-full max-w-2xl mx-auto">
+                <div className="bg-white/10 backdrop-blur-xl rounded-[24px] p-1 border border-white/20 shadow-2xl flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-3 px-4 py-2">
+                    <Sparkles size={18} className="text-white/40" />
+                    <input 
+                      type="text"
+                      value={refineInput}
+                      onChange={(e) => setRefineInput(e.target.value)}
+                      placeholder="输入修改建议，启用 nanobana-2 引擎进行精准重绘..."
+                      className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-white/30 pr-10"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && refineInput && !imageLoading) {
+                          const idx = generatedImages.indexOf(previewImage);
+                          if (idx !== -1) handleRefineImage(idx);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleOptimizeRefinePrompt}
+                      disabled={!refineInput || isOptimizing}
+                      className="p-1.5 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-all disabled:opacity-50"
+                      title="AI 自动优化修改建议"
+                    >
+                      {isOptimizing ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                    </button>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const idx = generatedImages.indexOf(previewImage);
+                      if (idx !== -1) handleRefineImage(idx);
+                    }}
+                    disabled={!refineInput || imageLoading}
+                    className="h-[44px] px-6 bg-white text-[#111111] rounded-[20px] font-bold text-xs flex items-center gap-2 hover:bg-white/90 transition-all disabled:opacity-50"
+                  >
+                    {imageLoading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
+                    {imageLoading ? "重绘中..." : "确认修改"}
+                  </button>
+                </div>
+                <p className="text-center text-white/40 text-[10px] mt-3 uppercase tracking-widest font-medium">
+                  观象引擎已启用内置 nanobana-2 深度重绘技术
+                </p>
+              </div>
+
+              <div className="absolute -bottom-20 left-0 right-0 flex justify-center gap-4">
                 <a
                   href={previewImage}
                   download="drawing-preview.png"
@@ -1820,6 +3494,19 @@ export default function App() {
                   <Download size={16} />
                   下载原图
                 </a>
+                <button
+                  onClick={() => {
+                    setReferenceImages(prev => [
+                      { preview: previewImage!, data: previewImage!.split(',')[1], weight: 0.8, type: 'ref' },
+                      ...prev.slice(0, 2)
+                    ]);
+                    setPreviewImage(null);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-[#111111] rounded-full text-sm font-bold hover:bg-white/90 transition-colors"
+                >
+                  <Plus size={16} />
+                  设为参考图
+                </button>
               </div>
             </motion.div>
           </motion.div>

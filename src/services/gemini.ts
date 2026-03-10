@@ -345,8 +345,9 @@ ROUTE: DRAWING
 1. 验证工程图纸类型
 2. 验证比例逻辑
 3. **自然语言转化**：将用户的非正式描述转化为高度详细、专业的工程 CAD 绘图提示词（Prompt）。
-4. 构建一个规范化的图纸任务
-5. 构建一个规范化的图纸工具输入
+4. **参考图分析（Render to Drawing）**：如果用户提供了参考图（如建筑效果图、实景图），你必须深度分析其空间结构、建筑形式、材质交接和构造细节。将这些视觉信息转化为精确的工程语言（如：轴线关系、墙体厚度、门窗开启方式、结构跨度等），并在提示词中详细描述，确保生成的图纸是该效果图的专业技术表达。
+5. 构建一个规范化的图纸任务
+6. 构建一个规范化的图纸工具输入
 
 提示词生成规则：
 - 必须包含：专业领域（ARCH/STR等）、图纸类型（平面图/剖面图等）、比例、技术细节（标注、轴线、图例）、风格（Professional engineering CAD line drawing, black and white, high contrast）。
@@ -568,6 +569,45 @@ export async function generateReview(prompt: string, imageParts: any[] = []): Pr
   }
 }
 
+export async function searchRegulationsWithAI(query: string): Promise<any> {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  const ai = new GoogleGenAI({ apiKey });
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `请搜索并识别以下建筑法规或规范的详细信息：${query}。
+    请返回 JSON 格式，包含：
+    - title (法规全称)
+    - regulation_number (编号)
+    - issuing_authority (发布机构)
+    - publish_date (发布日期)
+    - effective_date (生效日期)
+    - status (现行有效/已废止/被替代)
+    - official_url (官方查看链接)
+    - summary (核心内容摘要)
+    - key_clauses (关键条文预览，至少3条)`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json",
+    },
+  });
+
+  try {
+    const data = JSON.parse(response.text || "{}");
+    // Extract grounding metadata for source links
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    const searchSources = chunks?.map((c: any) => ({
+      title: c.web?.title,
+      uri: c.web?.uri
+    })) || [];
+    
+    return { ...data, searchSources };
+  } catch (e) {
+    console.error("Failed to parse AI search response", e);
+    return { error: "AI 搜索解析失败" };
+  }
+}
+
 export async function generateImage(prompt: string, config?: any, imageParts: any[] = []): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY || "";
   const ai = new GoogleGenAI({ apiKey });
@@ -584,6 +624,16 @@ export async function generateImage(prompt: string, config?: any, imageParts: an
         aspectRatio: config?.aspectRatio || "1:1",
         imageSize: config?.imageSize || "1K",
       },
+      tools: [
+        {
+          googleSearch: {
+            searchTypes: {
+              webSearch: {},
+              imageSearch: {},
+            }
+          },
+        },
+      ],
     },
   });
 
@@ -593,4 +643,37 @@ export async function generateImage(prompt: string, config?: any, imageParts: an
     }
   }
   return null;
+}
+
+export async function optimizePrompt(prompt: string, type: 'drawing' | 'render' | 'analysis' | 'concept'): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  const ai = new GoogleGenAI({ apiKey });
+
+  const typeMap = {
+    drawing: '专业工程 CAD 线图',
+    render: '商业建筑效果图',
+    analysis: '建筑分析图/概念分析',
+    concept: '建筑方案草图/意向图'
+  };
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `你是一个专业的建筑提示词优化专家。
+    请将以下用户的非正式描述优化为一段高度详细、专业的 ${typeMap[type]} 提示词。
+    优化后的提示词应包含：
+    1. 具体的建筑材质、光影、环境描述。
+    2. 专业的相机视角或绘图标准（如 CAD 标准）。
+    3. 风格关键词（如 Photorealistic, Cinematic, Professional CAD line drawing）。
+    4. 保持中文描述，但关键的技术术语可以保留英文。
+    
+    用户原始描述：${prompt}
+    
+    请直接返回优化后的提示词文本，不要包含任何解释或 JSON。`,
+    config: {
+      temperature: 0.7,
+      topP: 0.95,
+    },
+  });
+
+  return response.text.trim() || prompt;
 }

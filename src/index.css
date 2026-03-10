@@ -6,15 +6,15 @@
   --font-serif: "Cormorant Garamond", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --color-primary-custom: #6B6A4C;
-  --color-bg-main: #F3F1EC;
-  --color-surface: #FCFBF8;
-  --color-panel: #F8F6F1;
-  --color-muted-custom: #E8E5DE;
-  --color-subtle-block: #F1EFEB;
-  --color-text-primary: #222222;
-  --color-text-secondary: #8C877C;
-  --color-text-muted: #AAA396;
+  --color-primary-custom: #1A1A1A;
+  --color-accent-custom: #6B6A4C;
+  --color-bg-main: #F0F0ED;
+  --color-surface: #FFFFFF;
+  --color-panel: #F5F5F2;
+  --color-muted-custom: #D9D5CC;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
   --color-button-dark: #111111;
   --color-success-custom: #79815C;
   --color-warning-custom: #A38A5A;
