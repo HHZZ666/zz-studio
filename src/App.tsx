@@ -39,7 +39,10 @@ import {
   Lock,
   User,
   Mail,
-  LogOut
+  LogOut,
+  Eye,
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -271,7 +274,165 @@ export default function App() {
   const [showGuide, setShowGuide] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-3.1-pro');
+  const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('selectedModel') || 'gemini-3.1-pro');
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState('google');
+  const [platformSearch, setPlatformSearch] = useState('');
+  const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({});
+  const [platformConfigs, setPlatformConfigs] = useState<Record<string, any>>(() => {
+    const saved = localStorage.getItem('platformConfigs');
+    if (saved) return JSON.parse(saved);
+    
+    // Default configs
+    return {
+      google: { enabled: true, apiKey: '••••••••••••••••', endpoint: 'https://generativelanguage.googleapis.com', models: ['gemini-3.1-pro', 'gemini-3.1-flash'] },
+      openai: { enabled: true, apiKey: '', endpoint: 'https://api.openai.com/v1', models: ['gpt-4o', 'gpt-4-turbo'] },
+      anthropic: { enabled: false, apiKey: '', endpoint: 'https://api.anthropic.com/v1', models: ['claude-3.5-sonnet', 'claude-3-opus'] },
+      deepseek: { enabled: true, apiKey: '', endpoint: 'https://api.deepseek.com', models: ['deepseek-v3', 'deepseek-chat'] },
+      alibaba: { enabled: true, apiKey: '', endpoint: 'https://dashscope.aliyuncs.com/api/v1', models: ['qwen-max', 'qwen-plus'] },
+      moonshot: { enabled: false, apiKey: '', endpoint: 'https://api.moonshot.cn/v1', models: ['kimi-latest'] },
+      bytedance: { enabled: false, apiKey: '', endpoint: 'https://ark.cn-beijing.volces.com/api/v3', models: ['doubao-pro'] },
+      tencent: { enabled: false, apiKey: '', endpoint: 'https://hunyuan.tencentcloudapi.com', models: ['hunyuan-turbo'] },
+      baichuan: { enabled: false, apiKey: '', endpoint: 'https://api.baichuan-ai.com/v1', models: ['baichuan-4'] },
+      xai: { enabled: false, apiKey: '', endpoint: 'https://api.x.ai/v1', models: ['grok-1'] },
+      mistral: { enabled: false, apiKey: '', endpoint: 'https://api.mistral.ai/v1', models: ['mistral-large'] },
+    };
+  });
+
+  const [isUpdatingModels, setIsUpdatingModels] = useState<Record<string, boolean>>({});
+  const [isTestingConnection, setIsTestingConnection] = useState<Record<string, boolean>>({});
+
+  const handleTestConnection = async (platformId: string) => {
+    const config = platformConfigs[platformId];
+    if (!config || !config.apiKey) {
+      alert('请先配置 API 密钥');
+      return;
+    }
+
+    setIsTestingConnection(prev => ({ ...prev, [platformId]: true }));
+    try {
+      if (platformId === 'google') {
+        const response = await fetch(`${config.endpoint}/v1beta/models?key=${config.apiKey}`);
+        if (response.ok) {
+          alert('连接成功！API 密钥有效。');
+        } else {
+          const error = await response.json();
+          alert(`连接失败: ${error.error?.message || response.statusText}`);
+        }
+      } else {
+        let url = config.endpoint;
+        if (!url.endsWith('/v1') && !url.includes('/v1/')) {
+          if (platformId === 'deepseek' || platformId === 'moonshot' || platformId === 'baichuan') {
+             if (!url.endsWith('/v1')) url += '/v1';
+          }
+        }
+        const response = await fetch(`${url}/models`, {
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`
+          }
+        });
+        if (response.ok) {
+          alert('连接成功！API 密钥有效。');
+        } else {
+          const error = await response.json();
+          alert(`连接失败: ${error.error?.message || response.statusText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Test connection error:', error);
+      alert('连接失败，请检查网络或配置');
+    } finally {
+      setIsTestingConnection(prev => ({ ...prev, [platformId]: false }));
+    }
+  };
+
+  const handleUpdateModels = async (platformId: string) => {
+    const config = platformConfigs[platformId];
+    if (!config || !config.apiKey) {
+      alert('请先配置 API 密钥');
+      return;
+    }
+
+    setIsUpdatingModels(prev => ({ ...prev, [platformId]: true }));
+    try {
+      let newModels: string[] = [];
+      
+      if (platformId === 'google') {
+        const response = await fetch(`${config.endpoint}/v1beta/models?key=${config.apiKey}`);
+        const data = await response.json();
+        if (data.models) {
+          newModels = data.models
+            .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+            .map((m: any) => m.name.replace('models/', ''));
+        }
+      } else {
+        // OpenAI compatible
+        let url = config.endpoint;
+        if (!url.endsWith('/v1') && !url.includes('/v1/')) {
+          // Some providers might need /v1 suffix if not present
+          if (platformId === 'deepseek' || platformId === 'moonshot' || platformId === 'baichuan') {
+             if (!url.endsWith('/v1')) url += '/v1';
+          }
+        }
+        
+        const response = await fetch(`${url}/models`, {
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (data.data) {
+          newModels = data.data.map((m: any) => m.id);
+        }
+      }
+
+      if (newModels.length > 0) {
+        const updatedConfigs = {
+          ...platformConfigs,
+          [platformId]: { ...platformConfigs[platformId], models: newModels }
+        };
+        setPlatformConfigs(updatedConfigs);
+        localStorage.setItem('platformConfigs', JSON.stringify(updatedConfigs));
+        alert(`成功更新 ${newModels.length} 个模型`);
+      } else {
+        alert('未获取到模型列表，请检查配置或网络');
+      }
+    } catch (error) {
+      console.error('Update models error:', error);
+      alert('更新失败，请检查网络或 API 密钥是否正确');
+    } finally {
+      setIsUpdatingModels(prev => ({ ...prev, [platformId]: false }));
+    }
+  };
+
+  const handleSaveConfig = () => {
+    setIsSaving(true);
+    localStorage.setItem('platformConfigs', JSON.stringify(platformConfigs));
+    localStorage.setItem('selectedModel', selectedModel);
+    setTimeout(() => {
+      setIsSaving(false);
+    }, 800);
+  };
+
+  const platforms = [
+    { id: 'google', name: 'Gemini', icon: Cpu, color: 'text-blue-500' },
+    { id: 'openai', name: 'OpenAI', icon: Brain, color: 'text-green-600' },
+    { id: 'anthropic', name: 'Anthropic', icon: MessageSquare, color: 'text-orange-500' },
+    { id: 'deepseek', name: 'DeepSeek', icon: Code, color: 'text-blue-600' },
+    { id: 'alibaba', name: '阿里云百炼', icon: Globe, color: 'text-orange-600' },
+    { id: 'moonshot', name: '月之暗面', icon: Layers, color: 'text-purple-600' },
+    { id: 'bytedance', name: '火山引擎', icon: Zap, color: 'text-blue-400' },
+    { id: 'tencent', name: '腾讯云混元', icon: Building2, color: 'text-blue-700' },
+    { id: 'baichuan', name: '百川智能', icon: Database, color: 'text-red-500' },
+    { id: 'xai', name: 'xAI Grok', icon: Activity, color: 'text-white' },
+    { id: 'mistral', name: 'Mistral AI', icon: ShieldCheck, color: 'text-orange-400' },
+  ];
+
+  const filteredPlatforms = platforms.filter(p => 
+    p.name.toLowerCase().includes(platformSearch.toLowerCase()) || 
+    p.id.toLowerCase().includes(platformSearch.toLowerCase())
+  );
   
   // AI Annotation State
   const [annotations, setAnnotations] = useState<any[]>([]);
@@ -442,8 +603,7 @@ export default function App() {
       icon: Settings,
       pages: [
         { id: "source_management", name: "法规源管理" },
-        { id: "model_config", name: "模型配置" },
-        { id: "api_config", name: "API设置" },
+        { id: "engine_config", name: "模型与 API 配置" },
         { id: "permission_management", name: "权限管理" },
         { id: "system_logs", name: "系统日志" },
       ]
@@ -3232,95 +3392,253 @@ export default function App() {
                 </div>
               </motion.div>
             )}
-            {activePage === 'model_config' && (
+            {activePage === 'engine_config' && (
               <motion.div
-                key="model_config"
+                key="engine_config"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-5xl mx-auto space-y-8"
+                className="h-[calc(100vh-120px)] flex bg-white rounded-[32px] border border-[#D9D5CC]/30 shadow-sm overflow-hidden"
               >
-                <div className="flex flex-col space-y-2">
-                  <h2 className="text-2xl font-serif font-bold text-[#1A1A1A]">模型配置</h2>
-                  <p className="text-sm text-[#8C877C]">配置系统底层驱动引擎，选择最适合当前任务的 AI 模型</p>
+                {/* Left Sidebar */}
+                <div className="w-72 border-r border-[#D9D5CC]/30 flex flex-col bg-[#FBFBF9]">
+                  <div className="p-4 border-b border-[#D9D5CC]/30">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAA396]" size={14} />
+                      <input 
+                        type="text"
+                        placeholder="搜索模型平台..."
+                        value={platformSearch}
+                        onChange={(e) => setPlatformSearch(e.target.value)}
+                        className="w-full h-9 bg-white border border-[#D9D5CC] rounded-lg pl-9 pr-4 text-xs outline-none focus:border-[#1A1A1A] transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {filteredPlatforms.map((platform) => (
+                      <button
+                        key={platform.id}
+                        onClick={() => setSelectedPlatform(platform.id)}
+                        className={cn(
+                          "w-full flex items-center justify-between p-3 rounded-xl transition-all group",
+                          selectedPlatform === platform.id 
+                            ? "bg-white shadow-sm border border-[#D9D5CC]/50" 
+                            : "hover:bg-[#F5F5F2]"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center bg-white border border-[#D9D5CC]/30 shadow-sm",
+                            platform.color
+                          )}>
+                            <platform.icon size={16} />
+                          </div>
+                          <span className={cn(
+                            "text-xs font-bold",
+                            selectedPlatform === platform.id ? "text-[#1A1A1A]" : "text-[#8C877C]"
+                          )}>
+                            {platform.name}
+                          </span>
+                        </div>
+                        <div className={cn(
+                          "px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider",
+                          platformConfigs[platform.id]?.enabled 
+                            ? "bg-green-50 text-green-600 border border-green-200" 
+                            : "bg-gray-100 text-gray-400 border border-gray-200"
+                        )}>
+                          {platformConfigs[platform.id]?.enabled ? 'ON' : 'OFF'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', provider: 'Google', description: '最强大的多模态模型，适用于复杂建筑逻辑推理与合规审查。', icon: Cpu, color: 'blue' },
-                    { id: 'gemini-3.1-flash', name: 'Gemini 3.1 Flash', provider: 'Google', description: '极速响应，平衡性能与成本，适用于快速草图生成与简单问答。', icon: Zap, color: 'yellow' },
-                    { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: '全能型旗舰模型，具备卓越的自然语言理解与多模态交互能力。', icon: Brain, color: 'green' },
-                    { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', description: '极高的人文素养与代码能力，输出风格更接近人类设计师。', icon: MessageSquare, color: 'orange' },
-                    { id: 'deepseek-v3', name: 'DeepSeek-V3', provider: 'DeepSeek', description: '国产最强开源模型，在逻辑推理与数学计算方面表现优异。', icon: Code, color: 'purple' },
-                    { id: 'llama-3.1-405b', name: 'Llama 3.1 405B', provider: 'Meta', description: '顶级开源模型，具备极强的泛化能力与多语言支持。', icon: Globe, color: 'indigo' },
-                  ].map((model) => (
-                    <motion.div
-                      key={model.id}
-                      whileHover={{ y: -4 }}
-                      onClick={() => setSelectedModel(model.id)}
-                      className={cn(
-                        "p-6 rounded-[32px] border-2 transition-all cursor-pointer relative overflow-hidden group",
-                        selectedModel === model.id 
-                          ? "bg-white border-[#1A1A1A] shadow-xl" 
-                          : "bg-white/50 border-transparent hover:border-[#D9D5CC] hover:bg-white"
-                      )}
-                    >
-                      {selectedModel === model.id && (
-                        <div className="absolute top-4 right-4 text-[#1A1A1A]">
-                          <CheckCircle2 size={24} />
+                {/* Right Content */}
+                <div className="flex-1 flex flex-col bg-white">
+                  {selectedPlatform && (
+                    <>
+                      {/* Header */}
+                      <div className="p-6 border-b border-[#D9D5CC]/30 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-bold text-[#1A1A1A]">
+                            {platforms.find(p => p.id === selectedPlatform)?.name}
+                          </h3>
+                          <button className="text-[#AAA396] hover:text-[#1A1A1A] transition-colors">
+                            <ExternalLink size={16} />
+                          </button>
                         </div>
-                      )}
-                      
-                      <div className="space-y-4">
-                        <div className={cn(
-                          "w-12 h-12 rounded-2xl flex items-center justify-center",
-                          selectedModel === model.id ? "bg-[#1A1A1A] text-white" : "bg-[#F5F5F2] text-[#AAA396]"
-                        )}>
-                          <model.icon size={24} />
-                        </div>
-                        
-                        <div className="space-y-1">
+                        <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-[#1A1A1A]">{model.name}</h3>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F5F5F2] text-[#8C877C] font-bold uppercase tracking-tighter">
-                              {model.provider}
+                            <span className="text-[10px] font-bold text-[#8C877C] uppercase tracking-wider">
+                              {platformConfigs[selectedPlatform]?.enabled ? '已启用' : '已禁用'}
                             </span>
+                            <button 
+                              onClick={() => setPlatformConfigs({
+                                ...platformConfigs,
+                                [selectedPlatform]: { ...platformConfigs[selectedPlatform], enabled: !platformConfigs[selectedPlatform].enabled }
+                              })}
+                              className={cn(
+                                "w-10 h-5 rounded-full transition-all relative",
+                                platformConfigs[selectedPlatform]?.enabled ? "bg-orange-500" : "bg-[#D9D5CC]"
+                              )}
+                            >
+                              <div className={cn(
+                                "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
+                                platformConfigs[selectedPlatform]?.enabled ? "right-1" : "left-1"
+                              )} />
+                            </button>
                           </div>
-                          <p className="text-[11px] text-[#8C877C] leading-relaxed">
-                            {model.description}
+                        </div>
+                      </div>
+
+                      {/* Config Area */}
+                      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                        {/* API Key Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-bold text-[#1A1A1A]">API 密钥</h4>
+                              <Settings size={12} className="text-[#AAA396]" />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                              <input 
+                                type={showApiKey[selectedPlatform] ? "text" : "password"}
+                                value={platformConfigs[selectedPlatform]?.apiKey}
+                                onChange={(e) => setPlatformConfigs({
+                                  ...platformConfigs,
+                                  [selectedPlatform]: { ...platformConfigs[selectedPlatform], apiKey: e.target.value }
+                                })}
+                                placeholder="请输入 API 密钥..."
+                                className="w-full h-11 bg-[#FBFBF9] border border-[#D9D5CC] rounded-lg px-4 text-sm outline-none focus:border-[#1A1A1A] transition-all pr-10"
+                              />
+                              <button 
+                                onClick={() => setShowApiKey({ ...showApiKey, [selectedPlatform]: !showApiKey[selectedPlatform] })}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#AAA396] hover:text-[#1A1A1A]"
+                              >
+                                {showApiKey[selectedPlatform] ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                              <button 
+                                onClick={() => handleTestConnection(selectedPlatform)}
+                                disabled={isTestingConnection[selectedPlatform]}
+                                className="px-5 h-11 border border-[#D9D5CC] rounded-lg text-xs font-bold text-[#1A1A1A] hover:bg-[#F5F5F2] transition-all disabled:opacity-50"
+                              >
+                                {isTestingConnection[selectedPlatform] ? <Loader2 className="animate-spin" size={14} /> : "检测"}
+                              </button>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <button className="text-blue-500 hover:underline">点击这里获取密钥</button>
+                            <span className="text-[#AAA396]">多个密钥使用逗号分隔</span>
+                          </div>
+                        </div>
+
+                        {/* API Endpoint Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-[#1A1A1A]">API 地址</h4>
+                            <div className="w-3 h-3 rounded-full border border-[#AAA396] flex items-center justify-center text-[8px] text-[#AAA396]">?</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text"
+                              value={platformConfigs[selectedPlatform]?.endpoint}
+                              onChange={(e) => setPlatformConfigs({
+                                ...platformConfigs,
+                                [selectedPlatform]: { ...platformConfigs[selectedPlatform], endpoint: e.target.value }
+                              })}
+                              className="flex-1 h-11 bg-[#FBFBF9] border border-[#D9D5CC] rounded-lg px-4 text-sm outline-none focus:border-[#1A1A1A] transition-all"
+                            />
+                            <button 
+                              onClick={() => setPlatformConfigs({
+                                ...platformConfigs,
+                                [selectedPlatform]: { ...platformConfigs[selectedPlatform], endpoint: platforms.find(p => p.id === selectedPlatform)?.id === 'google' ? 'https://generativelanguage.googleapis.com' : 'https://api.openai.com/v1' }
+                              })}
+                              className="px-5 h-11 border border-red-200 text-red-500 rounded-lg text-xs font-bold hover:bg-red-50 transition-all"
+                            >
+                              重置
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-[#AAA396]">
+                            预览: <span className="font-mono">{platformConfigs[selectedPlatform]?.endpoint}/chat/completions</span>
                           </p>
                         </div>
 
-                        <div className="pt-2 flex items-center justify-between">
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <div key={star} className={cn("w-1.5 h-1.5 rounded-full", star <= (model.id.includes('pro') || model.id.includes('4o') || model.id.includes('sonnet') ? 5 : 4) ? "bg-[#6B6A4C]" : "bg-[#D9D5CC]")} />
+                        {/* Models Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <h4 className="text-xs font-bold text-[#1A1A1A]">模型</h4>
+                              <span className="px-2 py-0.5 bg-[#F5F5F2] rounded-full text-[10px] font-bold text-[#8C877C]">
+                                {platformConfigs[selectedPlatform]?.models?.length || 0}
+                              </span>
+                              <Search size={12} className="text-[#AAA396]" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleUpdateModels(selectedPlatform)}
+                                disabled={isUpdatingModels[selectedPlatform]}
+                                className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-all",
+                                  isUpdatingModels[selectedPlatform] 
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                                    : "bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
+                                )}
+                              >
+                                <RefreshCw size={12} className={cn(isUpdatingModels[selectedPlatform] && "animate-spin")} />
+                                {isUpdatingModels[selectedPlatform] ? "更新中..." : "联网更新"}
+                              </button>
+                              <button className="text-[#AAA396] hover:text-[#1A1A1A]">
+                                <Activity size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {platformConfigs[selectedPlatform]?.models?.map((model: string) => (
+                              <div 
+                                key={model}
+                                className="flex items-center justify-between p-4 bg-[#FBFBF9] border border-[#D9D5CC]/50 rounded-xl hover:border-[#D9D5CC] transition-all group cursor-pointer"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <ChevronRight size={14} className="text-[#AAA396]" />
+                                  <span className="text-xs font-bold text-[#1A1A1A]">{model}</span>
+                                </div>
+                                <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button className="text-[#AAA396] hover:text-[#1A1A1A]"><Settings size={14} /></button>
+                                </div>
+                              </div>
                             ))}
                           </div>
-                          <span className="text-[9px] font-bold text-[#AAA396] uppercase tracking-widest">
-                            {selectedModel === model.id ? '当前启用' : '点击切换'}
-                          </span>
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
 
-                <div className="bg-[#1A1A1A] rounded-[32px] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-bold">混合专家系统 (MoE) 已就绪</h3>
-                    <p className="text-xs text-white/60 max-w-md">
-                      观象建筑 AI 支持多模型协同工作。您可以为不同的任务（如：合规审查用 Pro，快速草图用 Flash）配置特定的默认引擎。
-                    </p>
-                  </div>
-                  <button className="px-8 py-4 bg-white text-[#1A1A1A] rounded-2xl font-bold text-sm hover:bg-[#F5F5F2] transition-all flex items-center gap-2">
-                    <Settings size={18} />
-                    高级路由设置
-                  </button>
+                      {/* Footer */}
+                      <div className="p-6 border-t border-[#D9D5CC]/30 flex items-center justify-between bg-[#FBFBF9]">
+                        <div className="flex items-center gap-2 text-[10px] text-[#8C877C]">
+                          <ShieldCheck size={14} className="text-green-600" />
+                          <span>配置已加密保存至本地浏览器</span>
+                        </div>
+                        <div className="flex gap-3">
+                          <button className="px-6 py-2 border border-[#D9D5CC] rounded-xl font-bold text-xs hover:bg-[#F5F5F2] transition-all">
+                            取消
+                          </button>
+                          <button 
+                            onClick={handleSaveConfig}
+                            disabled={isSaving}
+                            className="px-8 py-2 bg-[#1A1A1A] text-white rounded-xl font-bold text-xs hover:bg-black transition-all shadow-lg shadow-black/5 flex items-center gap-2"
+                          >
+                            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                            {isSaving ? '正在保存...' : '保存配置'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
             {/* Coming Soon Placeholder for other pages */}
-            {!['code_review', 'review_report', 'review_history', 'drawing_library', 'creation_workshop', 'model_config'].includes(activePage) && (
+            {!['code_review', 'review_report', 'review_history', 'drawing_library', 'creation_workshop', 'engine_config'].includes(activePage) && (
               <motion.div
                 key="coming_soon"
                 initial={{ opacity: 0 }}
