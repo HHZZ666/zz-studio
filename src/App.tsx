@@ -48,6 +48,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { generateReview, generateImage, searchRegulationsWithAI, optimizePrompt } from './services/gemini';
+import { FreeCanvas } from './components/FreeCanvas';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -268,7 +269,7 @@ export default function App() {
 
   const [selectedLibraryTag, setSelectedLibraryTag] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const user = { name: '观象用户', email: 'user@example.com', role: 'user' };
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('selectedModel') || 'gemini-3.1-pro');
   const [isSaving, setIsSaving] = useState(false);
@@ -471,6 +472,12 @@ export default function App() {
       id: "creation_workshop",
       name: "造像工坊",
       icon: Sparkles,
+      pages: []
+    },
+    {
+      id: "free_canvas",
+      name: "自由画布",
+      icon: LayoutDashboard,
       pages: []
     },
     {
@@ -760,6 +767,22 @@ export default function App() {
     }
   };
 
+  const handleCanvasGenerate = async (prompt: string) => {
+    try {
+      const img = await generateImage(prompt, { aspectRatio: '1:1' });
+      if (img) {
+        setGeneratedImages(prev => [img, ...prev]);
+        return img;
+      }
+    } catch (error: any) {
+      console.error(error);
+      if (error.message?.includes('403') || error.status === 'PERMISSION_DENIED') {
+        setHasKey(false);
+      }
+    }
+    return null;
+  };
+
   const handleAiAnnotate = async () => {
     if (!annotationPrompt.trim() || isAnnotating) return;
     
@@ -880,9 +903,9 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return <Login onLogin={(u) => setUser(u)} />;
-  }
+  // if (!user) {
+  //   return <Login onLogin={(u) => setUser(u)} />;
+  // }
 
   return (
     <div className="min-h-screen bg-[#F0F0ED] text-[#1A1A1A] font-sans selection:bg-[#6B6A4C]/20">
@@ -1098,16 +1121,7 @@ export default function App() {
                         安全中心
                       </button>
                       <div className="h-px bg-[#D9D5CC]/30 my-1 mx-2" />
-                      <button 
-                        onClick={() => {
-                          setUser(null);
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      >
-                        <LogOut size={14} />
-                        退出登录
-                      </button>
+                      {/* Logout button removed */}
                     </div>
                   </motion.div>
                 )}
@@ -1876,6 +1890,14 @@ export default function App() {
                 </div>
               </motion.div>
             )}
+
+            {activePage === 'free_canvas' && (
+              <FreeCanvas 
+                onGenerate={handleCanvasGenerate} 
+                libraryImages={generatedImages} 
+              />
+            )}
+
             {activePage === 'engine_config' && (
               <motion.div
                 key="engine_config"
