@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LumiScene Copilot</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar card">
+      <div class="brand">
+        <div class="kicker">LUMISCENE COPILOT</div>
+        <h1>LumiScene 专业可视化工作台</h1>
+      </div>
+      <div class="top-actions">
+        <button id="openApiSettingsBtn" type="button" class="btn secondary">API 设置</button>
+        <button id="savePresetBtn" class="btn ghost">保存方案</button>
+        <button id="resetBtn" class="btn ghost">重置</button>
+      </div>
+    </header>
+
+    
+    <section class="card section mode-switch-wrap">
+      <div class="mode-switch">
+        <button id="modeAnalyzeBtn" type="button" class="btn ghost mode-btn active" data-mode="analyze">模式A · SU截图分析填表</button>
+        <button id="modeRenderBtn" type="button" class="btn ghost mode-btn" data-mode="render">模式B · 白模+参考图渲染出图</button>
+      </div>
+    </section>
+
+    <main class="layout">
+      <section class="left-col">
+        <section class="card section mode-panel" data-mode-panel="analyze">
+          <div class="section-head">
+            <h2>Agent 填表</h2>
+            <span class="pill">Gemini</span>
+          </div>
+
+          <label class="field">
+            <span>需求</span>
+            <textarea id="agentInput" rows="4" placeholder="例如：现代奶油风客厅，黄昏暖光，真实住宅摄影感，不改结构，8K"></textarea>
+          </label>
+
+          <label class="field">
+            <span>SU 场景截图（仅用于填表分析，可选）</span>
+            <input id="sceneImageInput" type="file" accept="image/*" />
+          </label>
+          <div id="imageMeta" class="subtle">未选择图片</div>
+          <img id="imagePreview" class="image-preview hidden" alt="scene-preview" />
+
+          <div class="actions-grid">
+            <button id="recommendBtn" class="btn primary">推荐</button>
+            <button id="geminiFillBtn" class="btn secondary">Gemini 填充</button>
+            <button id="analyzeImageBtn" class="btn secondary">截图分析</button>
+            <button id="clearAgentBtn" class="btn ghost">清空</button>
+          </div>
+
+          <div class="api-entry-card">
+            <div>
+              <div class="api-entry-title">API 配置已独立收纳</div>
+              <div class="subtle">点击顶部「API 设置」填写 Key、切换模型、测试连接。</div>
+            </div>
+            <button id="openApiSettingsInlineBtn" type="button" class="btn ghost sm">打开 API 设置</button>
+          </div>
+
+          <div class="status" id="statusText">状态：就绪</div>
+        </section>
+
+        <section class="card section mode-panel hidden" data-mode-panel="render">
+          <div class="section-head">
+            <h2>白模渲染出图</h2>
+            <span class="pill">Image</span>
+          </div>
+
+          <div class="form two-col">
+            <div>
+              <label class="field"><span>SU白模图（必填）</span><input id="whiteModelInput" type="file" accept="image/*" /></label>
+              <div id="whiteModelMeta" class="subtle">未选择白模图</div>
+              <img id="whiteModelPreview" class="image-preview hidden" alt="white-model-preview" />
+            </div>
+            <div>
+              <label class="field"><span>风格参考图（必填）</span><input id="styleRefInput" type="file" accept="image/*" /></label>
+              <div id="styleRefMeta" class="subtle">未选择参考图</div>
+              <img id="styleRefPreview" class="image-preview hidden" alt="style-ref-preview" />
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <label class="field">
+              <span>出图模型</span>
+              <select id="renderModel">
+                <option value="gemini-2.5-flash-image">gemini-2.5-flash-image</option>
+                <option value="gemini-2.0-flash-preview-image-generation">gemini-2.0-flash-preview-image-generation</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>操作</span>
+              <button id="renderImageBtn" class="btn secondary">白模 + 参考图 出图</button>
+            </label>
+          </div>
+
+          <div id="renderResults" class="render-grid"></div>
+        </section>
+
+        <section class="card section output-panel" data-output-mode="analyze">
+          <div class="section-head"><h2>摘要</h2></div>
+          <div class="summary-grid">
+            <div class="kv"><span>风格</span><strong id="summaryStyle">-</strong></div>
+            <div class="kv"><span>光线</span><strong id="summaryLight">-</strong></div>
+            <div class="kv"><span>设备</span><strong id="summaryCamera">-</strong></div>
+          </div>
+        </section>
+
+        <section class="card section output-panel" data-output-mode="analyze">
+          <div class="section-head"><h2>JSON</h2><button id="copyJsonBtn" class="btn ghost sm">复制</button></div>
+          <pre id="jsonPreview" class="code"></pre>
+        </section>
+
+        <section class="card section output-panel" data-output-mode="analyze">
+          <div class="section-head"><h2>Prompt</h2><button id="copyPromptBtn" class="btn ghost sm">复制</button></div>
+          <pre id="promptPreview" class="code"></pre>
+        </section>
+
+        <section class="card section output-panel" data-output-mode="analyze">
+          <div class="section-head"><h2>Negative</h2><button id="copyNegativeBtn" class="btn ghost sm">复制</button></div>
+          <pre id="negativePromptPreview" class="code"></pre>
+        </section>
+      </section>
+
+      <section class="right-col">
+        <section class="card section">
+          <div class="section-head"><h2>预设</h2></div>
+          <div id="presetButtons" class="preset-grid"></div>
+        </section>
+
+        <section class="card section">
+          <div class="section-head"><h2>项目</h2></div>
+          <div class="form two-col">
+            <label class="field"><span>项目名</span><input id="project_name" type="text" /></label>
+            <label class="field"><span>空间</span><select id="scene_type"></select></label>
+            <label class="field"><span>几何</span><select id="geo"></select></label>
+            <label class="field"><span>物体</span><select id="obj"></select></label>
+            <label class="field"><span>转换</span><select id="convert"></select></label>
+            <label class="field"><span>比例</span><select id="ratio"></select></label>
+          </div>
+        </section>
+
+        <section class="card section">
+          <div class="section-head"><h2>场景</h2></div>
+          <div class="form two-col">
+            <label class="field"><span>业态属性</span><select id="asset_type"></select></label>
+            <label class="field"><span>具体业态</span><select id="business_type"></select></label>
+            <label class="field"><span>调性氛围</span><select id="tone_atmosphere"></select></label>
+            <label class="field tone-custom-wrap">
+              <span>自定义调性（可选）</span>
+              <input id="tone_custom" type="text" placeholder="例如：克制高级、带轻微戏剧张力、温暖但不泛黄" />
+              <div class="tone-tools">
+                <button id="toneSuggestBtn" type="button" class="btn ghost sm">词库补全</button>
+                <button id="toneAiExpandBtn" type="button" class="btn ghost sm">AI扩展</button>
+              </div>
+              <div id="toneSuggestions" class="tone-suggestions"></div>
+            </label>
+            <label class="field"><span>调性扩展（AI推理）</span><input id="tone_expanded" type="text" readonly placeholder="Gemini会自动扩展调性描述" /></label>
+            <label class="field"><span>功能目标</span><select id="function_goal"></select></label>
+            <label class="field"><span>风格参考（可选）</span><select id="style"></select></label>
+            <label class="field"><span>地点</span><select id="location"></select></label>
+            <label class="field"><span>时间</span><select id="time"></select></label>
+            <label class="field"><span>环境光</span><select id="envlight"></select></label>
+            <label class="field"><span>太阳模式</span><select id="sun_mode"></select></label>
+            <label class="field"><span>太阳朝向</span><select id="sun_orientation"></select></label>
+            <label class="field"><span>太阳方位角</span><select id="sun_azimuth"></select></label>
+            <label class="field"><span>太阳高度</span><select id="sun_altitude"></select></label>
+            <label class="field full"><span>灯光</span><div id="lights" class="chips"></div></label>
+            <label class="field"><span>体积光</span><select id="volumetric"></select></label>
+            <label class="field"><span>光影</span><select id="lightqual"></select></label>
+          </div>
+        </section>
+
+        <section class="card section">
+          <div class="section-head"><h2>摄影</h2></div>
+          <div class="form two-col">
+            <label class="field"><span>相机</span><select id="camera"></select></label>
+            <label class="field"><span>光圈</span><select id="aperture"></select></label>
+            <label class="field"><span>快门</span><select id="shutter"></select></label>
+            <label class="field full"><span>技术</span><div id="tech" class="chips"></div></label>
+          </div>
+        </section>
+
+        <section class="card section">
+          <div class="section-head"><h2>渲染</h2></div>
+          <div class="form two-col">
+            <label class="field"><span>分辨率</span><select id="res"></select></label>
+            <label class="field"><span>表现</span><select id="render"></select></label>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+
+  <div id="apiSettingsModal" class="modal hidden" aria-hidden="true">
+    <div id="closeApiSettingsBackdrop" class="modal-backdrop"></div>
+    <section class="modal-card card" role="dialog" aria-modal="true" aria-labelledby="apiSettingsTitle">
+      <div class="section-head modal-head">
+        <h2 id="apiSettingsTitle">API 设置</h2>
+        <button id="closeApiSettingsBtn" type="button" class="btn ghost sm">关闭</button>
+      </div>
+      <div class="form">
+        <label class="field">
+          <span>Gemini API Key</span>
+          <input id="geminiApiKey" type="password" placeholder="粘贴你的 Gemini API Key" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>填表模型</span>
+          <select id="geminiModel">
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          </select>
+        </label>
+      </div>
+      <div class="api-test-row modal-api-row">
+        <button id="testApiBtn" type="button" class="btn secondary">测试连接</button>
+        <span id="apiTestResult" class="subtle">未测试</span>
+      </div>
+      <div class="subtle">API Key 仅保存在当前浏览器本地，不写入项目文件。</div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      function applyMode(mode) {
+        document.querySelectorAll('.mode-panel').forEach(function (panel) {
+          panel.classList.toggle('hidden', panel.getAttribute('data-mode-panel') !== mode);
+        });
+        document.querySelectorAll('.output-panel').forEach(function (panel) {
+          var related = panel.getAttribute('data-output-mode') || 'analyze';
+          panel.classList.toggle('hidden', related !== mode);
+        });
+        document.querySelectorAll('.mode-btn').forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var analyzeBtn = document.getElementById('modeAnalyzeBtn');
+        var renderBtn = document.getElementById('modeRenderBtn');
+        if (analyzeBtn) analyzeBtn.addEventListener('click', function () { applyMode('analyze'); });
+        if (renderBtn) renderBtn.addEventListener('click', function () { applyMode('render'); });
+        applyMode('analyze');
+      });
+    })();
+  </script>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
